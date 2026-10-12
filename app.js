@@ -1,196 +1,295 @@
-// 1. Vérification PWA
-function vérifierModePWA() {
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const defaultState = {
+    initialCash: 0,
+    boxCost: 230,
+    boxRevenue: 450,
+    ledger: []
+};
 
-  if (isStandalone) {
-    document.getElementById('pwaTutorial').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-  } else {
-    document.getElementById('pwaTutorial').style.display = 'block';
-    document.getElementById('mainApp').style.display = 'none';
-  }
-}
+let state = { ...defaultState };
 
-// 2. Paywall
-function ouvrirModal() {
-  document.getElementById('interacModal').style.display = 'flex';
-}
-
-function fermerModal() {
-  document.getElementById('interacModal').style.display = 'none';
-}
-
-function debloquerSite() {
-  document.getElementById('interacModal').style.display = 'none';
-  document.getElementById('paywallCard').style.display = 'none';
-  document.getElementById('rabaisContent').classList.remove('blurred');
-  localStorage.setItem('promoQC_debloque', 'true');
-}
-
-function vérifierAchatPrécédent() {
-  if (localStorage.getItem('promoQC_debloque') === 'true') {
-    if (document.getElementById('paywallCard')) {
-      document.getElementById('paywallCard').style.display = 'none';
+function loadState() {
+    const saved = localStorage.getItem('starz_terminal_state');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            state = {
+                initialCash: typeof parsed.initialCash === 'number' ? parsed.initialCash : 0,
+                boxCost: typeof parsed.boxCost === 'number' ? parsed.boxCost : 230,
+                boxRevenue: typeof parsed.boxRevenue === 'number' ? parsed.boxRevenue : 450,
+                ledger: Array.isArray(parsed.ledger) ? parsed.ledger : []
+            };
+        } catch(e) {
+            state = { ...defaultState };
+        }
     }
-    if (document.getElementById('rabaisContent')) {
-      document.getElementById('rabaisContent').classList.remove('blurred');
+}
+
+function saveState() {
+    localStorage.setItem('starz_terminal_state', JSON.stringify(state));
+}
+
+// DOM
+const initialCashInput = document.getElementById('initial-cash');
+const boxCostInput = document.getElementById('box-cost');
+const boxRevenueInput = document.getElementById('box-revenue');
+
+const metricCash = document.getElementById('metric-cash');
+const metricPnl = document.getElementById('metric-pnl');
+const metricStock = document.getElementById('metric-stock');
+const metricRoi = document.getElementById('metric-roi');
+
+const btnBuyBox = document.getElementById('btn-buy-box');
+const btnSellBox = document.getElementById('btn-sell-box');
+const riskAlert = document.getElementById('risk-alert');
+
+const ledgerTbody = document.getElementById('ledger-tbody');
+const ledgerCount = document.getElementById('ledger-count');
+const btnClearLedger = document.getElementById('btn-clear-ledger');
+
+const btnSnapshot = document.getElementById('btn-snapshot');
+const btnExport = document.getElementById('btn-export');
+const specimenModal = document.getElementById('specimen-modal');
+const closeModal = document.getElementById('close-modal');
+const closeSpecimen = document.getElementById('close-specimen');
+const printSpecimen = document.getElementById('print-specimen');
+const specimenContent = document.getElementById('specimen-content');
+
+const canvas = document.getElementById('equityChart');
+const ctx = canvas.getContext('2d');
+
+function init() {
+    initialCashInput.value = state.initialCash;
+    boxCostInput.value = state.boxCost;
+    boxRevenueInput.value = state.boxRevenue;
+    updateButtonsText();
+    recompute();
+}
+
+function updateButtonsText() {
+    btnBuyBox.textContent = `Acheter 1 Box (-${state.boxCost} $)`;
+    btnSellBox.textContent = `Liquider / Vendre 1 Box (+${state.boxRevenue} $)`;
+}
+
+function recompute() {
+    if (!Array.isArray(state.ledger)) state.ledger = [];
+
+    let currentCash = parseFloat(state.initialCash) || 0;
+    let boxesSold = 0;
+    let totalSpent = 0;
+    let totalEarned = 0;
+    const historyData = [currentCash];
+
+    state.ledger.forEach(tx => {
+        if (tx.type === 'ACHAT_BOX') {
+            currentCash -= tx.amount;
+            totalSpent += tx.amount;
+        } else if (tx.type === 'VENTE_BOX') {
+            currentCash += tx.amount;
+            boxesSold++;
+            totalEarned += tx.amount;
+        }
+        historyData.push(currentCash);
+    });
+
+    const netPnl = totalEarned - totalSpent;
+    const roi = totalSpent > 0 ? (netPnl / totalSpent) * 100 : 0;
+
+    metricCash.textContent = currentCash.toFixed(2) + ' $';
+    metricCash.className = 'metric-val ' + (currentCash < 0 ? 'negative' : 'neutral');
+    
+    metricPnl.textContent = (netPnl >= 0 ? '+' : '') + netPnl.toFixed(2) + ' $';
+    metricPnl.className = 'metric-val ' + (netPnl >= 0 ? 'positive' : 'negative');
+    
+    metricStock.textContent = boxesSold + ' box';
+    metricRoi.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + ' %';
+    metricRoi.className = 'metric-val ' + (roi >= 0 ? 'positive' : 'negative');
+
+    drawTradingViewChart(historyData);
+    renderLedger();
+}
+
+function drawTradingViewChart(data) {
+    const rect = canvas.parentNode.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (data.length < 2) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px monospace';
+        ctx.fillText('Attente d\'opérations pour tracer la courbe...', 20, 30);
+        return;
     }
-  }
+
+    const padding = 20;
+    const minVal = Math.min(...data);
+    const maxVal = Math.max(...data);
+    const range = (maxVal - minVal) || 1;
+
+    const getX = (i) => padding + (i / (data.length - 1)) * (canvas.width - 2 * padding);
+    const getY = (val) => canvas.height - padding - ((val - minVal) / range) * (canvas.height - 2 * padding);
+
+    ctx.strokeStyle = '#1f2b45';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+        const y = (canvas.height / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+    const isUp = data[data.length - 1] >= data[0];
+    const lineColor = isUp ? '#10b981' : '#ef4444';
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, isUp ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)');
+    gradient.addColorStop(1, 'rgba(7, 9, 14, 0)');
+
+    ctx.beginPath();
+    ctx.moveTo(getX(0), getY(data[0]));
+    for (let i = 1; i < data.length; i++) {
+        ctx.lineTo(getX(i), getY(data[i]));
+    }
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.lineTo(getX(data.length - 1), canvas.height);
+    ctx.lineTo(getX(0), canvas.height);
+    ctx.fillStyle = gradient;
+    ctx.fill();
 }
 
-// 3. Moteur de dessin du Canvas
-function dessinerCarte() {
-  const canvas = document.getElementById('carteCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  
-  const type = document.getElementById('selectType').value;
-  const nom = document.getElementById('inputNom').value.toUpperCase() || 'FELIX BOUCHARD';
-  const dateInfo = document.getElementById('inputDate').value || '2026-01-14';
+function renderLedger() {
+    ledgerTbody.innerHTML = '';
+    ledgerCount.textContent = `${state.ledger.length} transactions`;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (state.ledger.length === 0) {
+        ledgerTbody.innerHTML = `<tr class="empty-row"><td colspan="7">Aucune opération enregistrée.</td></tr>`;
+        return;
+    }
 
-  if (type === 'RAMQ') {
-    dessinerRAMQ(ctx, nom, dateInfo);
-  } else {
-    dessinerPermis(ctx, nom, dateInfo);
-  }
+    let runningCash = parseFloat(state.initialCash) || 0;
+
+    state.ledger.forEach((tx, idx) => {
+        if (tx.type === 'ACHAT_BOX') runningCash -= tx.amount;
+        if (tx.type === 'VENTE_BOX') runningCash += tx.amount;
+
+        const tr = document.createElement('tr');
+        const color = tx.type === 'ACHAT_BOX' ? 'var(--danger)' : 'var(--success)';
+
+        tr.innerHTML = `
+            <td style="color: var(--text-muted);">#ORD-${1000 + idx}</td>
+            <td>${tx.timestamp}</td>
+            <td style="font-weight: 600; color: ${color};">${tx.type === 'ACHAT_BOX' ? 'ACHAT' : 'VENTE'}</td>
+            <td>${tx.desc}</td>
+            <td style="color: ${color};">${tx.type === 'ACHAT_BOX' ? '-' : '+'}${tx.amount.toFixed(2)} $</td>
+            <td>${runningCash.toFixed(2)} $</td>
+            <td><button class="btn-text" onclick="deleteTx(${idx})">Suppr</button></td>
+        `;
+        ledgerTbody.appendChild(tr);
+    });
 }
 
-// Rendu de la Carte RAMQ
-function dessinerRAMQ(ctx, nom, dateInfo) {
-  // Fond dégradé RAMQ
-  const grad = ctx.createLinearGradient(0, 0, 700, 430);
-  grad.addColorStop(0, '#eaf4f8');
-  grad.addColorStop(0.5, '#fefae0');
-  grad.addColorStop(1, '#e3f2fd');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 700, 430);
-
-  // En-tête Québec
-  ctx.fillStyle = '#0f172a';
-  ctx.font = 'italic 18px Arial';
-  ctx.fillText('Régie de', 180, 45);
-  ctx.fillText("l'assurance maladie", 180, 68);
-
-  ctx.font = 'bold 36px Arial';
-  ctx.fillStyle = '#003366';
-  ctx.fillText('Québec', 280, 95);
-
-  // Drapeau du Québec
-  ctx.fillStyle = '#003399';
-  ctx.fillRect(490, 35, 50, 35);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(510, 35, 10, 35);
-  ctx.fillRect(490, 48, 50, 9);
-
-  // Emplacement photo
-  ctx.fillStyle = '#cbd5e1';
-  ctx.fillRect(510, 90, 150, 190);
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(510, 90, 150, 190);
-
-  // Informations de la carte
-  ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 12px Arial';
-  ctx.fillText('NUMÉRO D\'ASSURANCE MALADIE', 40, 130);
-
-  ctx.font = 'bold 28px monospace';
-  ctx.fillStyle = '#1e3a8a';
-  ctx.fillText('BOUF 9401 1419', 40, 165);
-
-  ctx.font = 'bold 12px Arial';
-  ctx.fillStyle = '#0f172a';
-  ctx.fillText('PRÉNOM ET NOM À LA NAISSANCE', 40, 210);
-
-  // NOM PERSONNALISÉ
-  ctx.font = 'bold 24px monospace';
-  ctx.fillStyle = '#000000';
-  ctx.fillText(nom, 40, 245);
-
-  ctx.font = 'bold 12px Arial';
-  ctx.fillText('14  01  14      M', 40, 310);
-  ctx.font = '10px Arial';
-  ctx.fillText('NAISSANCE (AA MM JJ)   SEXE', 40, 325);
-
-  ctx.font = 'bold 18px monospace';
-  ctx.fillText(dateInfo, 370, 310);
-  ctx.font = '10px Arial';
-  ctx.fillText('< EXPIRATION', 500, 310);
-
-  // Signature
-  ctx.font = 'italic 22px cursive';
-  ctx.fillStyle = '#1e293b';
-  ctx.fillText(nom, 430, 380);
-}
-
-// Rendu du Permis de conduire
-function dessinerPermis(ctx, nom, dateInfo) {
-  // Fond
-  const grad = ctx.createLinearGradient(0, 0, 700, 430);
-  grad.addColorStop(0, '#f1f5f9');
-  grad.addColorStop(1, '#cbd5e1');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 700, 430);
-
-  // Bandeau supérieur
-  ctx.fillStyle = '#0284c7';
-  ctx.fillRect(0, 0, 700, 65);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 22px Arial';
-  ctx.fillText('PERMIS DE CONDUIRE - QUÉBEC', 30, 40);
-
-  // Cadre photo
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillRect(40, 90, 160, 200);
-  ctx.strokeStyle = '#475569';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(40, 90, 160, 200);
-
-  // Champs du permis
-  ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 11px Arial';
-  ctx.fillText('1. NOM & PRÉNOM', 230, 110);
-  
-  // NOM PERSONNALISÉ
-  ctx.font = 'bold 22px monospace';
-  ctx.fillStyle = '#0f172a';
-  ctx.fillText(nom, 230, 135);
-
-  ctx.font = 'bold 11px Arial';
-  ctx.fillText('2. DATE D\'EXPIRATION', 230, 180);
-  ctx.font = 'bold 18px monospace';
-  ctx.fillText(dateInfo, 230, 205);
-
-  ctx.font = 'bold 11px Arial';
-  ctx.fillText('3. NO DU PERMIS', 230, 250);
-  ctx.font = 'bold 18px monospace';
-  ctx.fillText('B-1234-567890-01', 230, 275);
-
-  ctx.font = 'bold 11px Arial';
-  ctx.fillText('CLASS: 5', 40, 330);
-}
-
-// 4. Exportation d'image
-function telechargerCarte() {
-  const canvas = document.getElementById('carteCanvas');
-  const link = document.createElement('a');
-  link.download = 'document_identite.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-}
-
-// Initialisation
-window.addEventListener('DOMContentLoaded', () => {
-  vérifierModePWA();
-  vérifierAchatPrécédent();
-  dessinerCarte();
+// Events
+btnBuyBox.addEventListener('click', () => {
+    const cost = parseFloat(boxCostInput.value) || 0;
+    state.ledger.push({
+        type: 'ACHAT_BOX',
+        timestamp: new Date().toLocaleTimeString(),
+        desc: `Achat 1 Box`,
+        amount: cost
+    });
+    saveState();
+    recompute();
 });
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(() => console.log('Service Worker actif !'))
-    .catch(err => console.log('Erreur SW :', err));
-}
+btnSellBox.addEventListener('click', () => {
+    const rev = parseFloat(boxRevenueInput.value) || 0;
+    state.ledger.push({
+        type: 'VENTE_BOX',
+        timestamp: new Date().toLocaleTimeString(),
+        desc: `Liquidation / Revente 1 Box`,
+        amount: rev
+    });
+    saveState();
+    recompute();
+});
+
+initialCashInput.addEventListener('input', (e) => {
+    state.initialCash = parseFloat(e.target.value) || 0;
+    saveState();
+    recompute();
+});
+
+boxCostInput.addEventListener('input', (e) => {
+    state.boxCost = parseFloat(e.target.value) || 0;
+    updateButtonsText();
+    saveState();
+    recompute();
+});
+
+boxRevenueInput.addEventListener('input', (e) => {
+    state.boxRevenue = parseFloat(e.target.value) || 0;
+    updateButtonsText();
+    saveState();
+    recompute();
+});
+
+window.deleteTx = function(idx) {
+    state.ledger.splice(idx, 1);
+    saveState();
+    recompute();
+};
+
+btnClearLedger.addEventListener('click', () => {
+    if (confirm('Réinitialiser le carnet de transactions ?')) {
+        state.ledger = [];
+        saveState();
+        recompute();
+    }
+});
+
+btnSnapshot.addEventListener('click', () => {
+    let currentCash = parseFloat(state.initialCash) || 0;
+    let spent = 0, earned = 0;
+    state.ledger.forEach(t => {
+        if (t.type === 'ACHAT_BOX') { currentCash -= t.amount; spent += t.amount; }
+        if (t.type === 'VENTE_BOX') { currentCash += t.amount; earned += t.amount; }
+    });
+
+    specimenContent.innerHTML = `
+        <div><strong>STARZ // SYNTHÈSE DE CLÔTURE</strong></div>
+        <div>Date : ${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}</div>
+        <hr style="border-color: var(--border); margin: 8px 0;">
+        <div>• Trésorerie Initiale : ${state.initialCash.toFixed(2)} $</div>
+        <div>• Total Investi (Box) : ${spent.toFixed(2)} $</div>
+        <div>• Total Recettes (Reventes) : ${earned.toFixed(2)} $</div>
+        <div style="font-weight: bold; color: ${earned - spent >= 0 ? 'var(--success)' : 'var(--danger)'}">
+            • Profit Net : ${(earned - spent >= 0 ? '+' : '')}${(earned - spent).toFixed(2)} $
+        </div>
+        <hr style="border-color: var(--border); margin: 8px 0;">
+        <div><strong>Solde Final Liquide : ${currentCash.toFixed(2)} $</strong></div>
+    `;
+    specimenModal.classList.remove('hidden');
+});
+
+closeModal.addEventListener('click', () => specimenModal.classList.add('hidden'));
+closeSpecimen.addEventListener('click', () => specimenModal.classList.add('hidden'));
+printSpecimen.addEventListener('click', () => window.print());
+
+btnExport.addEventListener('click', () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `starz_data_${Date.now()}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+});
+
+loadState();
+init();
+window.addEventListener('resize', recompute);

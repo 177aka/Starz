@@ -1,16 +1,8 @@
 {
-  "name": "PromoQC - Générateur de Cartes",
-  "short_name": "PromoQC",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "icons": [
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+    "name": "Starz Terminal",
+    "short_name": "Starz",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#07090e",
+    "theme_color": "#07090e"
 }

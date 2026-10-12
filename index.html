@@ -1,106 +1,153 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PromoQC - Éditeur de Cartes</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css">
-  <meta name="theme-color" content="#0f172a">
-  <link rel="apple-touch-icon" href="icon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starz</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#07090e">
 </head>
 <body>
+    <div class="terminal-container">
+        <!-- Navigation -->
+        <header class="nav-bar">
+            <div class="brand">
+                <span class="brand-title">STARZ</span>
+                <span class="brand-sub">TERMINAL</span>
+            </div>
+            <div class="nav-actions">
+                <button id="btn-snapshot" class="btn btn-secondary">Spécimen / Reçu</button>
+                <button id="btn-export" class="btn btn-secondary">Exporter JSON</button>
+            </div>
+        </header>
 
-  <!-- ÉCRAN TUTORIEL PWA -->
-  <div id="pwaTutorial" class="tutorial-container">
-    <div class="hero-icon">🎟️</div>
-    <h1>Bienvenue sur PromoQC</h1>
-    <p class="subtitle">Pour accéder à l'éditeur de cartes, ajoute l'application sur ton écran d'accueil.</p>
+        <!-- Metrics Ticker -->
+        <section class="metrics-ticker">
+            <div class="metric-card">
+                <span class="metric-label">Trésorerie Liquidités</span>
+                <span class="metric-val" id="metric-cash">0.00 $</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">P&L Net (Profit)</span>
+                <span class="metric-val" id="metric-pnl">0.00 $</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Volume Box Écoulées</span>
+                <span class="metric-val neutral" id="metric-stock">0 box</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Rendement (ROI)</span>
+                <span class="metric-val neutral" id="metric-roi">0.00 %</span>
+            </div>
+        </section>
 
-    <div class="instructions-card">
-      <div class="step">
-        <h3>📱 Sur iPhone (Safari) :</h3>
-        <p>1. Appuie sur le bouton de partage <span class="highlight">⎋</span> en bas.</p>
-        <p>2. Descends et choisis <span class="highlight">« Sur l'écran d'accueil » ➕</span>.</p>
-      </div>
-      <hr>
-      <div class="step">
-        <h3>🤖 Sur Android (Chrome) :</h3>
-        <p>1. Appuie sur les 3 petits points <span class="highlight">⋮</span> en haut à droite.</p>
-        <p>2. Choisis <span class="highlight">« Ajouter à l'écran d'accueil »</span>.</p>
-      </div>
-    </div>
+        <!-- TradingView Chart Canvas -->
+        <section class="panel chart-panel">
+            <div class="panel-header">
+                <h2>Courbe de Performance de Trésorerie (TradingView Style)</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="equityChart"></canvas>
+            </div>
+        </section>
 
-    <p class="footer-note">Une fois ajoutée, ouvre l'icône <b>PromoQC</b> depuis ton téléphone pour continuer !</p>
-  </div>
+        <!-- Workspace Grid -->
+        <div class="workspace-grid">
+            <!-- Configuration -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Paramètres Financiers & Box</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="input-group">
+                        <label for="initial-cash">Trésorerie de départ ($)</label>
+                        <input type="number" id="initial-cash" value="0" step="1">
+                    </div>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="box-cost">Prix Achat 1 Box ($)</label>
+                            <input type="number" id="box-cost" value="230">
+                        </div>
+                        <div class="input-group">
+                            <label for="box-revenue">Revenu Revente 1 Box ($)</label>
+                            <input type="number" id="box-revenue" value="450">
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-  <!-- APPLICATION PRINCIPALE -->
-  <div id="mainApp" class="app-container" style="display: none;">
-    
-    <header>
-      <h1>Générateur de Cartes 🪪</h1>
-      <p>Personnalise et télécharge tes pièces d'identité</p>
-    </header>
+            <!-- Operational Desk -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Opérations / Liquidation Box</h2>
+                </div>
+                <div class="panel-body execution-body">
+                    <div class="sales-buttons-grid">
+                        <button id="btn-buy-box" class="btn btn-danger-soft">Acheter 1 Box (-230 $)</button>
+                        <button id="btn-sell-box" class="btn btn-success-soft">Liquider / Vendre 1 Box (+450 $)</button>
+                    </div>
 
-    <!-- PAIEMENT INTERAC -->
-    <div id="paywallCard" class="card highlight-card">
-      <h2>🔓 Débloquer l'Éditeur</h2>
-      <p>Accès illimité au générateur de cartes pour seulement <b>5,00 $ / mois</b>.</p>
-      <button class="btn-pay" onclick="ouvrirModal()">S'abonner pour 5,00 $/mois ⚡</button>
-    </div>
-
-    <!-- ZONE ÉDITEUR (FLOUTÉE AVANT PAIEMENT) -->
-    <div id="rabaisContent" class="content-scroll-container blurred">
-      
-      <section class="card">
-        <!-- SELECTION DU TYPE DE DOCUMENT -->
-        <div class="form-group">
-          <label for="selectType">Type de pièce d'identité :</label>
-          <select id="selectType" onchange="dessinerCarte()">
-            <option value="RAMQ">Carte d'assurance maladie (RAMQ)</option>
-            <option value="PERMIS">Permis de conduire du Québec</option>
-          </select>
+                    <div id="risk-alert" class="risk-alert hidden">
+                        <span>⚠️</span>
+                        <span id="risk-text">Alerte : Trésorerie insuffisante pour acheter une box.</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="card-editor-container">
-          <div class="form-group">
-            <label for="inputNom">Nom complet :</label>
-            <input type="text" id="inputNom" value="FELIX BOUCHARD" placeholder="EX: JEAN TREMBLAY" oninput="dessinerCarte()">
-          </div>
+        <!-- Ledger / Table -->
+        <section class="panel ledger-panel">
+            <div class="panel-header ledger-header">
+                <h2>Carnet d'Ordres & Transactions</h2>
+                <div class="ledger-meta">
+                    <span id="ledger-count">0 transactions</span>
+                    <button id="btn-clear-ledger" class="btn-text">Vider le carnet</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>ID Ordre</th>
+                            <th>Heure</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Flux Net</th>
+                            <th>Trésorerie Après</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-tbody">
+                        <tr class="empty-row">
+                            <td colspan="7">Aucune opération enregistrée dans le carnet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 
-          <div class="form-group">
-            <label for="inputDate">Date d'expiration / Naissance :</label>
-            <input type="text" id="inputDate" value="2026-01-14" placeholder="AAAA-MM-JJ" oninput="dessinerCarte()">
-          </div>
-
-          <!-- CANVAS DE RENDU INTERACTIF -->
-          <div class="canvas-wrapper">
-            <canvas id="carteCanvas" width="700" height="430"></canvas>
-          </div>
-
-          <button class="btn-download-card" onclick="telechargerCarte()">Télécharger la carte (PNG) 📥</button>
+    <!-- Modale Spécimen -->
+    <div id="specimen-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="specimen-header">
+                <h3>Starz // Bilan Financier</h3>
+                <button id="close-modal" class="btn-close">&times;</button>
+            </div>
+            <div class="specimen-body" id="specimen-content"></div>
+            <div class="specimen-footer">
+                <button id="print-specimen" class="btn btn-secondary">Imprimer / PDF</button>
+                <button id="close-specimen" class="btn btn-primary">Fermer</button>
+            </div>
         </div>
-      </section>
-
     </div>
 
-  </div>
-
-  <!-- MODAL INTERAC -->
-  <div id="interacModal" class="modal">
-    <div class="modal-content">
-      <h3>📲 Virement Interac (5,00 $)</h3>
-      <p>Envoie <b>5,00 $</b> pour ton accès mensuel depuis ton appli bancaire à :</p>
-      
-      <div class="email-box">editeursonique@gmail.com</div>
-      
-      <p class="small-text">(Dépôt automatique activé — Indique ton courriel en note du virement)</p>
-      
-      <button class="btn-confirm" onclick="debloquerSite()">J'ai envoyé les 5,00 $ 👍</button>
-      <button class="btn-close" onclick="fermerModal()">Annuler</button>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.error(err));
+        }
+    </script>
 </body>
 </html>
