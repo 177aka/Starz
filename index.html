@@ -1,144 +1,196 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="basic" data-lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Starz</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#07090e">
+    <meta name="theme-color" content="#131722">
 </head>
 <body>
-    <div class="terminal-container">
-        <!-- Navigation -->
-        <header class="nav-bar">
-            <div class="brand">
-                <span class="brand-title">STARZ</span>
-                <span class="brand-sub">TERMINAL</span>
+    <div class="app-viewport">
+        <header class="top-bar">
+            <div class="top-bar-main">
+                <div class="brand-zone">
+                    <span class="symbol">STARZ</span>
+                    <span class="badge" id="badge-mode">RÉEL</span>
+                </div>
+                <div class="top-actions">
+                    <div class="mode-switch">
+                        <button class="mode-tab active" data-mode="real">RÉEL</button>
+                        <button class="mode-tab" data-mode="sim">SIM</button>
+                    </div>
+                    <button id="btn-snapshot" class="btn-icon" data-i18n="btn_bilan">Bilan</button>
+                    <button id="btn-settings" class="btn-icon">⚙️</button>
+                    <button id="btn-export" class="btn-icon">JSON</button>
+                </div>
             </div>
-            <div class="nav-actions">
-                <button id="btn-snapshot" class="btn btn-secondary">Spécimen / Reçu</button>
-                <button id="btn-export" class="btn btn-secondary">Exporter JSON</button>
+            
+            <div class="ohlc-ticker">
+                <div class="ticker-item"><span class="lbl" data-i18n="cash">TRÉSORERIE</span><span class="val" id="tk-cash">0.00 $</span></div>
+                <div class="ticker-item"><span class="lbl" data-i18n="pnl">P&L NET</span><span class="val" id="tk-pnl">+0.00 $</span></div>
+                <div class="ticker-item"><span class="lbl" data-i18n="roi">ROI</span><span class="val" id="tk-roi">0.00%</span></div>
+                <div class="ticker-item"><span class="lbl" data-i18n="units">UNITÉS</span><span class="val neutral" id="tk-units">0</span></div>
             </div>
         </header>
 
-        <!-- Metrics Ticker -->
-        <section class="metrics-ticker">
-            <div class="metric-card">
-                <span class="metric-label">Trésorerie Liquidités</span>
-                <span class="metric-val" id="metric-cash">0.00 $</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-label">P&L Net (Profit)</span>
-                <span class="metric-val" id="metric-pnl">0.00 $</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-label">Volume Box Écoulées</span>
-                <span class="metric-val neutral" id="metric-stock">0 box</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-label">Rendement (ROI)</span>
-                <span class="metric-val neutral" id="metric-roi">0.00 %</span>
-            </div>
-        </section>
-
-        <!-- TradingView Chart Canvas -->
-        <section class="panel chart-panel">
-            <div class="panel-header">
-                <h2>Courbe de Performance de Trésorerie (TradingView Style)</h2>
-            </div>
-            <div class="chart-container">
-                <canvas id="equityChart"></canvas>
-            </div>
-        </section>
-
-        <!-- Workspace Grid -->
-        <div class="workspace-grid">
-            <!-- Configuration -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>Paramètres Financiers & Box</h2>
-                </div>
-                <div class="panel-body">
-                    <div class="input-group">
-                        <label for="initial-cash">Trésorerie de départ ($)</label>
-                        <input type="number" id="initial-cash" value="0" step="1">
+        <main class="main-layout">
+            <section class="chart-area">
+                <div class="chart-header-bar">
+                    <div class="symbol-info">
+                        <span class="pair-title">STARZ / CASH</span>
+                        <span class="chart-tf" data-i18n="chart_sub">PERFORMANCE FINANCIÈRE</span>
                     </div>
-                    <div class="input-row">
-                        <div class="input-group">
-                            <label for="box-cost">Prix Achat 1 Box ($)</label>
-                            <input type="number" id="box-cost" value="230">
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="tradingChart"></canvas>
+                    <div id="crosshair-legend" class="crosshair-legend"></div>
+                </div>
+            </section>
+
+            <aside class="execution-sidebar">
+                <div class="sidebar-tab-header">
+                    <span data-i18n="execution_title">EXÉCUTION DES ORDRES</span>
+                </div>
+
+                <div id="panel-real" class="execution-panel active">
+                    <div class="control-box">
+                        <div class="box-title" data-i18n="box_capital">CAPITAL & STOCK</div>
+                        <div class="form-row">
+                            <div class="field">
+                                <label data-i18n="lbl_treasury">Trésorerie</label>
+                                <input type="text" inputmode="decimal" id="real-initial-cash" value="0">
+                            </div>
+                            <div class="field">
+                                <label data-i18n="lbl_box_cost">Coût Box</label>
+                                <input type="text" inputmode="decimal" id="real-box-cost" value="230">
+                            </div>
                         </div>
-                        <div class="input-group">
-                            <label for="box-revenue">Revenu Revente 1 Box ($)</label>
-                            <input type="number" id="box-revenue" value="450">
+                        <button id="btn-real-buy-box" class="btn btn-buy">+ ACHETER 1 BOX (-230$)</button>
+                    </div>
+
+                    <div class="control-box">
+                        <div class="box-title" data-i18n="box_sale">VENTE CLIENT DIRECTE</div>
+                        <div class="field">
+                            <label data-i18n="lbl_client">Client</label>
+                            <input type="text" id="client-name" placeholder="Nom du client">
+                        </div>
+                        <div class="form-row">
+                            <div class="field">
+                                <label data-i18n="lbl_model">Modèle</label>
+                                <input type="text" id="client-model" placeholder="Ex: 48k">
+                            </div>
+                            <div class="field">
+                                <label data-i18n="lbl_flavor">Goût</label>
+                                <input type="text" id="client-flavor" placeholder="Ex: Menthe">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label data-i18n="lbl_price">Montant Encaissé</label>
+                            <input type="text" inputmode="decimal" id="client-price" value="45">
+                        </div>
+                        <button id="btn-real-sell-unit" class="btn btn-sell" data-i18n="btn_validate_sale">VALIDER VENTE CLIENT</button>
+                    </div>
+                </div>
+
+                <div id="panel-sim" class="execution-panel">
+                    <div class="control-box">
+                        <div class="box-title" data-i18n="box_sim">SIMULATION DE BOX</div>
+                        <div class="form-row">
+                            <div class="field">
+                                <label data-i18n="lbl_box_cost">Achat Box</label>
+                                <input type="text" inputmode="decimal" id="sim-box-cost" value="230">
+                            </div>
+                            <div class="field">
+                                <label data-i18n="lbl_box_rev">Revente Box</label>
+                                <input type="text" inputmode="decimal" id="sim-box-revenue" value="450">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <button id="btn-sim-buy" class="btn btn-buy" data-i18n="btn_sim_buy">ACHAT TEST</button>
+                            <button id="btn-sim-sell" class="btn btn-sell" data-i18n="btn_sim_sell">LIQUIDATION</button>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Operational Desk -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>Opérations / Liquidation Box</h2>
-                </div>
-                <div class="panel-body execution-body">
-                    <div class="sales-buttons-grid">
-                        <button id="btn-buy-box" class="btn btn-danger-soft">Acheter 1 Box (-230 $)</button>
-                        <button id="btn-sell-box" class="btn btn-success-soft">Liquider / Vendre 1 Box (+450 $)</button>
-                    </div>
-
-                    <div id="risk-alert" class="risk-alert hidden">
-                        <span>⚠️</span>
-                        <span id="risk-text">Alerte : Trésorerie insuffisante pour acheter une box.</span>
+                    <div class="sim-stats">
+                        <div class="stat-row"><span data-i18n="lbl_margin">MARGE NETTE:</span><strong id="sim-margin-val">+220.00 $</strong></div>
+                        <div class="stat-row"><span data-i18n="lbl_profit_test">PROFIT TEST:</span><strong id="sim-pnl-val">0.00 $</strong></div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Ledger / Table -->
-        <section class="panel ledger-panel">
-            <div class="panel-header ledger-header">
-                <h2>Carnet d'Ordres & Transactions</h2>
-                <div class="ledger-meta">
-                    <span id="ledger-count">0 transactions</span>
-                    <button id="btn-clear-ledger" class="btn-text">Vider le carnet</button>
+                <div class="ledger-drawer">
+                    <div class="drawer-header">
+                        <span data-i18n="ledger_title">CARNET D'ORDRES</span>
+                        <button id="btn-clear-ledger" class="btn-clean" data-i18n="btn_clear">VIDER</button>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="pro-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="th_time">HEURE</th>
+                                    <th data-i18n="th_type">TYPE</th>
+                                    <th data-i18n="th_detail">DÉTAIL</th>
+                                    <th data-i18n="th_net">NET</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledger-tbody">
+                                <tr><td colspan="4" class="empty" data-i18n="empty_orders">AUCUN ORDRE</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-            <div class="table-container">
-                <table class="ledger-table">
-                    <thead>
-                        <tr>
-                            <th>ID Ordre</th>
-                            <th>Heure</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                            <th>Flux Net</th>
-                            <th>Trésorerie Après</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ledger-tbody">
-                        <tr class="empty-row">
-                            <td colspan="7">Aucune opération enregistrée dans le carnet.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            </aside>
+        </main>
     </div>
 
-    <!-- Modale Spécimen -->
     <div id="specimen-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="specimen-header">
-                <h3>Starz // Bilan Financier</h3>
-                <button id="close-modal" class="btn-close">&times;</button>
+        <div class="modal-card modal-large">
+            <div class="modal-head">
+                <span data-i18n="bilan_title">Bilan</span>
+                <button id="close-modal" class="close-btn">&times;</button>
             </div>
-            <div class="specimen-body" id="specimen-content"></div>
-            <div class="specimen-footer">
-                <button id="print-specimen" class="btn btn-secondary">Imprimer / PDF</button>
-                <button id="close-specimen" class="btn btn-primary">Fermer</button>
+            <div class="modal-body" id="specimen-content"></div>
+            <div class="modal-foot">
+                <button id="download-image" class="btn btn-secondary" data-i18n="btn_img">Télécharger Image</button>
+                <button id="print-specimen" class="btn btn-secondary" data-i18n="btn_print">Imprimer / PDF</button>
+                <button id="close-specimen" class="btn btn-primary" data-i18n="btn_close">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-card">
+            <div class="modal-head">
+                <span data-i18n="settings_title">Paramètres</span>
+                <button id="close-settings" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="field" style="margin-bottom: 12px;">
+                    <label data-i18n="lbl_theme">Thème Visuel</label>
+                    <select id="setting-theme">
+                        <option value="basic">Basic (Sombre)</option>
+                        <option value="black">Black (OLED)</option>
+                        <option value="white">White (Blanc & Noir)</option>
+                    </select>
+                </div>
+                <div class="field" style="margin-bottom: 12px;">
+                    <label data-i18n="lbl_lang">Langue</label>
+                    <select id="setting-lang">
+                        <option value="fr">Français</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label data-i18n="lbl_currency">Devise</label>
+                    <select id="setting-currency">
+                        <option value="CAD">CAD ($)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button id="save-settings" class="btn btn-primary" data-i18n="btn_save">Enregistrer</button>
             </div>
         </div>
     </div>
@@ -146,11 +198,7 @@
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Starz Terminal // PWA Actif', reg.scope))
-                    .catch(err => console.error('Erreur Service Worker:', err));
-            });
+            navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
         }
     </script>
 </body>
