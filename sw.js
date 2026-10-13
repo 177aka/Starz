@@ -1,4 +1,4 @@
-const CACHE_NAME = 'starz-tv-pro-v2';
+const CACHE_NAME = 'starz-pro-v5';
 const assets = [
     './index.html',
     './style.css',

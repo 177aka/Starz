@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="basic" data-lang="fr">
+<html lang="en" data-theme="basic" data-lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -14,24 +14,23 @@
             <div class="top-bar-main">
                 <div class="brand-zone">
                     <span class="symbol">STARZ</span>
-                    <span class="badge" id="badge-mode">RÉEL</span>
+                    <span class="badge" id="badge-mode">REAL</span>
                 </div>
                 <div class="top-actions">
                     <div class="mode-switch">
-                        <button class="mode-tab active" data-mode="real">RÉEL</button>
+                        <button class="mode-tab active" data-mode="real">REAL</button>
                         <button class="mode-tab" data-mode="sim">SIM</button>
                     </div>
-                    <button id="btn-snapshot" class="btn-icon" data-i18n="btn_bilan">Bilan</button>
+                    <button id="btn-privacy" class="btn-icon" title="Privacy Mode">👁️</button>
                     <button id="btn-settings" class="btn-icon">⚙️</button>
-                    <button id="btn-export" class="btn-icon">JSON</button>
                 </div>
             </div>
             
             <div class="ohlc-ticker">
-                <div class="ticker-item"><span class="lbl" data-i18n="cash">TRÉSORERIE</span><span class="val" id="tk-cash">0.00 $</span></div>
-                <div class="ticker-item"><span class="lbl" data-i18n="pnl">P&L NET</span><span class="val" id="tk-pnl">+0.00 $</span></div>
+                <div class="ticker-item"><span class="lbl" data-i18n="cash">TREASURY</span><span class="val" id="tk-cash">0.00 $</span></div>
+                <div class="ticker-item"><span class="lbl" data-i18n="pnl">NET P&L</span><span class="val" id="tk-pnl">+0.00 $</span></div>
                 <div class="ticker-item"><span class="lbl" data-i18n="roi">ROI</span><span class="val" id="tk-roi">0.00%</span></div>
-                <div class="ticker-item"><span class="lbl" data-i18n="units">UNITÉS</span><span class="val neutral" id="tk-units">0</span></div>
+                <div class="ticker-item"><span class="lbl" data-i18n="units">UNITS</span><span class="val neutral" id="tk-units">0</span></div>
             </div>
         </header>
 
@@ -40,7 +39,12 @@
                 <div class="chart-header-bar">
                     <div class="symbol-info">
                         <span class="pair-title">STARZ / CASH</span>
-                        <span class="chart-tf" data-i18n="chart_sub">PERFORMANCE FINANCIÈRE</span>
+                        <span class="chart-tf" data-i18n="chart_sub">FINANCIAL PERFORMANCE</span>
+                    </div>
+                    <div class="chart-filters">
+                        <button class="filter-btn active" data-filter="all" data-i18n="filter_all">ALL</button>
+                        <button class="filter-btn" data-filter="today" data-i18n="filter_today">TODAY</button>
+                        <button class="filter-btn" data-filter="7d" data-i18n="filter_7d">7D</button>
                     </div>
                 </div>
                 <div class="canvas-wrapper">
@@ -51,7 +55,7 @@
 
             <aside class="execution-sidebar">
                 <div class="sidebar-tab-header">
-                    <span data-i18n="execution_title">EXÉCUTION DES ORDRES</span>
+                    <span data-i18n="execution_title">ORDER EXECUTION</span>
                 </div>
 
                 <div id="panel-real" class="execution-panel active">
@@ -59,82 +63,123 @@
                         <div class="box-title" data-i18n="box_capital">CAPITAL & STOCK</div>
                         <div class="form-row">
                             <div class="field">
-                                <label data-i18n="lbl_treasury">Trésorerie</label>
+                                <label data-i18n="lbl_treasury">Treasury</label>
                                 <input type="text" inputmode="decimal" id="real-initial-cash" value="0">
                             </div>
                             <div class="field">
-                                <label data-i18n="lbl_box_cost">Coût Box</label>
+                                <label data-i18n="lbl_box_cost">Box Cost</label>
                                 <input type="text" inputmode="decimal" id="real-box-cost" value="230">
                             </div>
                         </div>
-                        <button id="btn-real-buy-box" class="btn btn-buy">+ ACHETER 1 BOX (-230$)</button>
+                        <div class="form-row" style="margin-top: 6px;">
+                            <div class="field">
+                                <label>Box en Stock Initial</label>
+                                <input type="text" inputmode="numeric" id="real-initial-boxes" value="0">
+                            </div>
+                            <div class="field">
+                                <label>Ventes Initiales (Unités)</label>
+                                <input type="text" inputmode="numeric" id="real-initial-units" value="0">
+                            </div>
+                        </div>
+                        <button id="btn-real-buy-box" class="btn btn-buy" style="margin-top: 6px;">+ BUY 1 BOX (-230$)</button>
+                    </div>
+
+                    <!-- CALCULATEUR DE MARGE RAPIDE -->
+                    <div class="control-box">
+                        <div class="box-title">⚡ CALCULATEUR DE MARGE RAPIDE</div>
+                        <div class="form-row">
+                            <div class="field">
+                                <label>Prix / Unité</label>
+                                <input type="text" inputmode="decimal" id="calc-price" value="45">
+                            </div>
+                            <div class="field">
+                                <label>Quantité</label>
+                                <input type="text" inputmode="numeric" id="calc-qty" value="1">
+                            </div>
+                        </div>
+                        <div class="sim-stats" style="margin-top: 4px; padding: 6px;">
+                            <div class="stat-row"><span>CA Estimé:</span><strong id="calc-rev-val">45.00 $</strong></div>
+                            <div class="stat-row"><span>Coût Estimé (PRU):</span><strong id="calc-cost-val" style="color:var(--red);">23.00 $</strong></div>
+                            <div class="stat-row"><span>Profit Net Prévu:</span><strong id="calc-profit-val">+22.00 $</strong></div>
+                        </div>
                     </div>
 
                     <div class="control-box">
-                        <div class="box-title" data-i18n="box_sale">VENTE CLIENT DIRECTE</div>
+                        <div class="box-title" data-i18n="box_sale">DIRECT CLIENT SALE</div>
                         <div class="field">
                             <label data-i18n="lbl_client">Client</label>
-                            <input type="text" id="client-name" placeholder="Nom du client">
+                            <input type="text" id="client-name" placeholder="Client name">
                         </div>
                         <div class="form-row">
                             <div class="field">
-                                <label data-i18n="lbl_model">Modèle</label>
+                                <label data-i18n="lbl_model">Model</label>
                                 <input type="text" id="client-model" placeholder="Ex: 48k">
                             </div>
                             <div class="field">
-                                <label data-i18n="lbl_flavor">Goût</label>
-                                <input type="text" id="client-flavor" placeholder="Ex: Menthe">
+                                <label data-i18n="lbl_flavor">Flavor</label>
+                                <input type="text" id="client-flavor" placeholder="Ex: Mint">
                             </div>
                         </div>
-                        <div class="field">
-                            <label data-i18n="lbl_price">Montant Encaissé</label>
-                            <input type="text" inputmode="decimal" id="client-price" value="45">
+                        <div class="form-row">
+                            <div class="field">
+                                <label data-i18n="lbl_price">Unit Price</label>
+                                <input type="text" inputmode="decimal" id="client-price" value="45">
+                            </div>
+                            <div class="field">
+                                <label data-i18n="lbl_qty">Quantity</label>
+                                <input type="text" inputmode="numeric" id="client-qty" value="1">
+                            </div>
                         </div>
-                        <button id="btn-real-sell-unit" class="btn btn-sell" data-i18n="btn_validate_sale">VALIDER VENTE CLIENT</button>
+                        <button id="btn-real-sell-unit" class="btn btn-sell" data-i18n="btn_validate_sale">VALIDATE SALE</button>
                     </div>
                 </div>
 
                 <div id="panel-sim" class="execution-panel">
                     <div class="control-box">
-                        <div class="box-title" data-i18n="box_sim">SIMULATION DE BOX</div>
+                        <div class="box-title" data-i18n="box_sim">BOX SIMULATION</div>
+                        <div class="field" style="margin-bottom: 8px;">
+                            <label data-i18n="lbl_treasury">Initial Treasury</label>
+                            <input type="text" inputmode="decimal" id="sim-initial-cash" value="0">
+                        </div>
                         <div class="form-row">
                             <div class="field">
-                                <label data-i18n="lbl_box_cost">Achat Box</label>
+                                <label data-i18n="lbl_box_cost">Box Cost</label>
                                 <input type="text" inputmode="decimal" id="sim-box-cost" value="230">
                             </div>
                             <div class="field">
-                                <label data-i18n="lbl_box_rev">Revente Box</label>
+                                <label data-i18n="lbl_box_rev">Box Revenue</label>
                                 <input type="text" inputmode="decimal" id="sim-box-revenue" value="450">
                             </div>
                         </div>
-                        <div class="form-row">
-                            <button id="btn-sim-buy" class="btn btn-buy" data-i18n="btn_sim_buy">ACHAT TEST</button>
+                        <div class="form-row" style="margin-top: 8px;">
+                            <button id="btn-sim-buy" class="btn btn-buy" data-i18n="btn_sim_buy">TEST BUY</button>
                             <button id="btn-sim-sell" class="btn btn-sell" data-i18n="btn_sim_sell">LIQUIDATION</button>
                         </div>
                     </div>
                     <div class="sim-stats">
-                        <div class="stat-row"><span data-i18n="lbl_margin">MARGE NETTE:</span><strong id="sim-margin-val">+220.00 $</strong></div>
-                        <div class="stat-row"><span data-i18n="lbl_profit_test">PROFIT TEST:</span><strong id="sim-pnl-val">0.00 $</strong></div>
+                        <div class="stat-row"><span data-i18n="lbl_margin">NET MARGIN:</span><strong id="sim-margin-val">+220.00 $</strong></div>
+                        <div class="stat-row"><span data-i18n="lbl_profit_test">TEST PROFIT:</span><strong id="sim-pnl-val">0.00 $</strong></div>
                     </div>
                 </div>
 
                 <div class="ledger-drawer">
                     <div class="drawer-header">
-                        <span data-i18n="ledger_title">CARNET D'ORDRES</span>
-                        <button id="btn-clear-ledger" class="btn-clean" data-i18n="btn_clear">VIDER</button>
+                        <span data-i18n="ledger_title">ORDER BOOK</span>
+                        <button id="btn-clear-ledger" class="btn-clean" data-i18n="btn_clear">CLEAR</button>
                     </div>
                     <div class="table-scroll">
                         <table class="pro-table">
                             <thead>
                                 <tr>
-                                    <th data-i18n="th_time">HEURE</th>
+                                    <th data-i18n="th_time">TIME</th>
                                     <th data-i18n="th_type">TYPE</th>
-                                    <th data-i18n="th_detail">DÉTAIL</th>
+                                    <th data-i18n="th_detail">DETAIL</th>
                                     <th data-i18n="th_net">NET</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody id="ledger-tbody">
-                                <tr><td colspan="4" class="empty" data-i18n="empty_orders">AUCUN ORDRE</td></tr>
+                                <tr><td colspan="5" class="empty" data-i18n="empty_orders">NO ORDERS</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -143,54 +188,69 @@
         </main>
     </div>
 
-    <div id="specimen-modal" class="modal hidden">
-        <div class="modal-card modal-large">
-            <div class="modal-head">
-                <span data-i18n="bilan_title">Bilan</span>
-                <button id="close-modal" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body" id="specimen-content"></div>
-            <div class="modal-foot">
-                <button id="download-image" class="btn btn-secondary" data-i18n="btn_img">Télécharger Image</button>
-                <button id="print-specimen" class="btn btn-secondary" data-i18n="btn_print">Imprimer / PDF</button>
-                <button id="close-specimen" class="btn btn-primary" data-i18n="btn_close">Fermer</button>
-            </div>
-        </div>
-    </div>
-
     <div id="settings-modal" class="modal hidden">
         <div class="modal-card">
             <div class="modal-head">
-                <span data-i18n="settings_title">Paramètres</span>
+                <span data-i18n="settings_title">Settings</span>
                 <button id="close-settings" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="field" style="margin-bottom: 12px;">
-                    <label data-i18n="lbl_theme">Thème Visuel</label>
+                    <label data-i18n="lbl_theme">Visual Theme</label>
                     <select id="setting-theme">
-                        <option value="basic">Basic (Sombre)</option>
+                        <option value="basic">Basic (Dark)</option>
                         <option value="black">Black (OLED)</option>
-                        <option value="white">White (Blanc & Noir)</option>
+                        <option value="white">White (Light)</option>
                     </select>
                 </div>
                 <div class="field" style="margin-bottom: 12px;">
-                    <label data-i18n="lbl_lang">Langue</label>
+                    <label data-i18n="lbl_lang">Language</label>
                     <select id="setting-lang">
-                        <option value="fr">Français</option>
                         <option value="en">English</option>
+                        <option value="fr">Français</option>
                     </select>
                 </div>
-                <div class="field">
-                    <label data-i18n="lbl_currency">Devise</label>
+                <div class="field" style="margin-bottom: 12px;">
+                    <label data-i18n="lbl_currency">Currency</label>
                     <select id="setting-currency">
                         <option value="CAD">CAD ($)</option>
                         <option value="USD">USD ($)</option>
                         <option value="EUR">EUR (€)</option>
                     </select>
                 </div>
+                <hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
+                <div class="field" style="margin-bottom: 12px;">
+                    <label>Type de Graphique (Chart Style)</label>
+                    <select id="setting-chart-type">
+                        <option value="line">Ligne Simple</option>
+                        <option value="area">Aire Dégradée</option>
+                        <option value="candlestick">Bougies Japonaises (Candlestick)</option>
+                    </select>
+                </div>
+                <div class="field" style="margin-bottom: 12px;">
+                    <label>Style de Ligne / Effet Visuel</label>
+                    <select id="setting-line-style">
+                        <option value="glow">Néon Lumineux (Glow)</option>
+                        <option value="solid">Ligne Pleine Standard</option>
+                    </select>
+                </div>
+                <div class="field" style="margin-bottom: 12px;">
+                    <label>Histogramme de Volume</label>
+                    <select id="setting-show-volume">
+                        <option value="true">Affiché (Bas)</option>
+                        <option value="false">Masqué</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Grille de Fond</label>
+                    <select id="setting-show-grid">
+                        <option value="true">Affichée</option>
+                        <option value="false">Masquée</option>
+                    </select>
+                </div>
             </div>
             <div class="modal-foot">
-                <button id="save-settings" class="btn btn-primary" data-i18n="btn_save">Enregistrer</button>
+                <button id="save-settings" class="btn btn-primary" data-i18n="btn_save">Save</button>
             </div>
         </div>
     </div>

@@ -1,13 +1,22 @@
 const defaultState = {
     realCash: 0,
     realBoxCost: 230,
+    realInitialBoxes: 0,
+    realInitialUnits: 0,
     realLedger: [],
+    simInitialCash: 0,
     simLedger: [],
     simBoxCost: 230,
     simBoxRevenue: 450,
     theme: 'basic',
-    lang: 'fr',
-    currency: 'CAD'
+    lang: 'en',
+    currency: 'CAD',
+    privacyMode: false,
+    timeFilter: 'all',
+    chartType: 'line',
+    lineStyle: 'glow',
+    showVolume: true,
+    showGrid: true
 };
 
 let state = { ...defaultState };
@@ -15,39 +24,46 @@ let state = { ...defaultState };
 const i18n = {
     fr: {
         cash: "TRÉSORERIE", pnl: "P&L NET", roi: "ROI", units: "UNITÉS",
-        btn_bilan: "Bilan", chart_sub: "PERFORMANCE FINANCIÈRE",
+        chart_sub: "PERFORMANCE FINANCIÈRE",
         execution_title: "EXÉCUTION DES ORDRES", box_capital: "CAPITAL & STOCK",
         lbl_treasury: "Trésorerie", lbl_box_cost: "Coût Box",
         box_sale: "VENTE CLIENT DIRECTE", lbl_client: "Client", lbl_model: "Modèle",
-        lbl_flavor: "Goût", lbl_price: "Montant Encaissé", btn_validate_sale: "VALIDER VENTE CLIENT",
+        lbl_flavor: "Goût", lbl_price: "Prix Unitaire", lbl_qty: "Quantité",
+        btn_validate_sale: "VALIDER VENTE CLIENT",
         box_sim: "SIMULATION DE BOX", lbl_box_rev: "Revente Box",
         btn_sim_buy: "ACHAT TEST", btn_sim_sell: "LIQUIDATION",
         lbl_margin: "MARGE NETTE:", lbl_profit_test: "PROFIT TEST:",
         ledger_title: "CARNET D'ORDRES", btn_clear: "VIDER",
         th_time: "HEURE", th_type: "TYPE", th_detail: "DÉTAIL", th_net: "NET",
-        empty_orders: "AUCUN ORDRE", bilan_title: "Bilan",
-        btn_img: "Télécharger Image", btn_print: "Imprimer / PDF", btn_close: "Fermer",
+        empty_orders: "AUCUN ORDRE",
         settings_title: "Paramètres", lbl_theme: "Thème Visuel", lbl_lang: "Langue",
-        lbl_currency: "Devise", btn_save: "Enregistrer"
+        lbl_currency: "Devise", btn_save: "Enregistrer",
+        filter_all: "TOUT", filter_today: "AUJOURD'HUI", filter_7d: "7J"
     },
     en: {
         cash: "TREASURY", pnl: "NET P&L", roi: "ROI", units: "UNITS",
-        btn_bilan: "Report", chart_sub: "FINANCIAL PERFORMANCE",
+        chart_sub: "FINANCIAL PERFORMANCE",
         execution_title: "ORDER EXECUTION", box_capital: "CAPITAL & STOCK",
         lbl_treasury: "Treasury", lbl_box_cost: "Box Cost",
         box_sale: "DIRECT CLIENT SALE", lbl_client: "Client", lbl_model: "Model",
-        lbl_flavor: "Flavor", lbl_price: "Amount Received", btn_validate_sale: "VALIDATE SALE",
+        lbl_flavor: "Flavor", lbl_price: "Unit Price", lbl_qty: "Quantity",
+        btn_validate_sale: "VALIDATE SALE",
         box_sim: "BOX SIMULATION", lbl_box_rev: "Box Revenue",
         btn_sim_buy: "TEST BUY", btn_sim_sell: "LIQUIDATION",
         lbl_margin: "NET MARGIN:", lbl_profit_test: "TEST PROFIT:",
         ledger_title: "ORDER BOOK", btn_clear: "CLEAR",
         th_time: "TIME", th_type: "TYPE", th_detail: "DETAIL", th_net: "NET",
-        empty_orders: "NO ORDERS", bilan_title: "Report",
-        btn_img: "Download Image", btn_print: "Print / PDF", btn_close: "Close",
+        empty_orders: "NO ORDERS",
         settings_title: "Settings", lbl_theme: "Visual Theme", lbl_lang: "Language",
-        lbl_currency: "Currency", btn_save: "Save"
+        lbl_currency: "Currency", btn_save: "Save",
+        filter_all: "ALL", filter_today: "TODAY", filter_7d: "7D"
     }
 };
+
+function parseNum(val) {
+    if (!val) return 0;
+    return parseFloat(val.toString().replace(',', '.')) || 0;
+}
 
 function t(key) {
     return i18n[state.lang][key] || key;
@@ -84,9 +100,18 @@ document.querySelectorAll('.mode-tab').forEach(btn => {
         document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         activeMode = e.target.dataset.mode;
-        document.getElementById('badge-mode').textContent = activeMode === 'real' ? 'RÉEL' : 'SIM';
+        document.getElementById('badge-mode').textContent = activeMode === 'real' ? (state.lang === 'fr' ? 'RÉEL' : 'REAL') : 'SIM';
         document.getElementById('panel-real').classList.toggle('active', activeMode === 'real');
         document.getElementById('panel-sim').classList.toggle('active', activeMode === 'sim');
+        recompute();
+    });
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.timeFilter = e.target.dataset.filter;
         recompute();
     });
 });
@@ -98,9 +123,20 @@ const tkUnits = document.getElementById('tk-units');
 
 const realInitialCashInput = document.getElementById('real-initial-cash');
 const realBoxCostInput = document.getElementById('real-box-cost');
+const realInitialBoxesInput = document.getElementById('real-initial-boxes');
+const realInitialUnitsInput = document.getElementById('real-initial-units');
 const btnRealBuyBox = document.getElementById('btn-real-buy-box');
+
+const simInitialCashInput = document.getElementById('sim-initial-cash');
 const simBoxCostInput = document.getElementById('sim-box-cost');
 const simBoxRevenueInput = document.getElementById('sim-box-revenue');
+
+// Elements du Calculateur de Marge Rapide
+const calcPriceInput = document.getElementById('calc-price');
+const calcQtyInput = document.getElementById('calc-qty');
+const calcRevVal = document.getElementById('calc-rev-val');
+const calcCostVal = document.getElementById('calc-cost-val');
+const calcProfitVal = document.getElementById('calc-profit-val');
 
 const ledgerTbody = document.getElementById('ledger-tbody');
 const canvas = document.getElementById('tradingChart');
@@ -113,22 +149,74 @@ let isHoveringCanvas = false;
 function init() {
     realInitialCashInput.value = state.realCash;
     realBoxCostInput.value = state.realBoxCost;
+    realInitialBoxesInput.value = state.realInitialBoxes || 0;
+    realInitialUnitsInput.value = state.realInitialUnits || 0;
+
+    simInitialCashInput.value = state.simInitialCash;
     simBoxCostInput.value = state.simBoxCost;
     simBoxRevenueInput.value = state.simBoxRevenue;
     
     document.getElementById('setting-theme').value = state.theme;
     document.getElementById('setting-lang').value = state.lang;
     document.getElementById('setting-currency').value = state.currency;
+    document.getElementById('setting-chart-type').value = state.chartType;
+    document.getElementById('setting-line-style').value = state.lineStyle;
+    document.getElementById('setting-show-volume').value = state.showVolume.toString();
+    document.getElementById('setting-show-grid').value = state.showGrid.toString();
+
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === state.timeFilter);
+    });
+
+    const privacyBtn = document.getElementById('btn-privacy');
+    privacyBtn.style.opacity = state.privacyMode ? '1' : '0.5';
 
     setupCanvasInteractivity();
     updateTexts();
     updateBuyButtonText();
+    updateQuickCalculator();
     recompute();
 }
 
 function updateBuyButtonText() {
-    const cost = parseFloat(realBoxCostInput.value) || 230;
-    btnRealBuyBox.textContent = `+ ACHETER 1 BOX (-${cost}${state.currency === 'EUR' ? '€' : '$'})`;
+    const cost = parseNum(realBoxCostInput.value) || 230;
+    const costStr = state.privacyMode ? '••••' : cost;
+    const buyText = state.lang === 'fr' ? 'ACHETER 1 BOX' : 'BUY 1 BOX';
+    btnRealBuyBox.textContent = `+ ${buyText} (-${costStr}${state.currency === 'EUR' ? '€' : '$'})`;
+}
+
+function updateQuickCalculator() {
+    const price = parseNum(calcPriceInput.value);
+    const qty = parseNum(calcQtyInput.value);
+    const boxCost = parseNum(realBoxCostInput.value) || 230;
+    // Estimation unitaire basée sur 10 unités par box (ajustable si besoin)
+    const unitCost = boxCost / 10; 
+
+    const totalRev = price * qty;
+    const totalCost = unitCost * qty;
+    const netProfit = totalRev - totalCost;
+
+    calcRevVal.textContent = formatCurrency(totalRev);
+    calcCostVal.textContent = formatCurrency(totalCost);
+    calcProfitVal.textContent = (netProfit >= 0 ? '+' : '') + formatCurrency(netProfit);
+    calcProfitVal.style.color = netProfit >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+function filterTransactions(ledger) {
+    if (state.timeFilter === 'all') return ledger;
+    const now = new Date();
+    return ledger.filter(tx => {
+        if (!tx.timestamp) return true;
+        const txDate = new Date(tx.timestamp);
+        if (state.timeFilter === 'today') {
+            return txDate.toDateString() === now.toDateString();
+        } else if (state.timeFilter === '7d') {
+            const diffTime = Math.abs(now - txDate);
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+            return diffDays <= 7;
+        }
+        return true;
+    });
 }
 
 function recompute() {
@@ -140,13 +228,22 @@ function recompute() {
 }
 
 function formatCurrency(val) {
+    if (state.privacyMode) return '••••••';
     const sym = state.currency === 'EUR' ? '€' : '$';
     return `${val.toFixed(2)} ${sym}`;
 }
 
 function computeReal() {
-    let currentCash = parseFloat(state.realCash) || 0;
-    let unitsSold = 0, totalSpent = 0, totalEarned = 0;
+    let currentCash = parseNum(state.realCash) || 0;
+    let unitsSold = parseNum(state.realInitialUnits) || 0;
+    let totalSpent = 0, totalEarned = 0;
+    
+    const initialBoxes = parseNum(state.realInitialBoxes) || 0;
+    const boxCost = parseNum(state.realBoxCost) || 230;
+    if (initialBoxes > 0) {
+        totalSpent += initialBoxes * boxCost;
+    }
+
     const historyData = [currentCash];
 
     state.realLedger.forEach(tx => {
@@ -161,23 +258,37 @@ function computeReal() {
         historyData.push(currentCash);
     });
 
-    currentChartData = historyData;
     const netPnl = totalEarned - totalSpent;
     const roi = totalSpent > 0 ? (netPnl / totalSpent) * 100 : 0;
 
     tkCash.textContent = formatCurrency(currentCash);
     tkPnl.textContent = (netPnl >= 0 ? '+' : '') + formatCurrency(netPnl);
     tkPnl.className = 'val ' + (netPnl >= 0 ? 'positive' : 'negative');
-    tkRoi.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + '%';
+    tkRoi.textContent = state.privacyMode ? '••••' : ((roi >= 0 ? '+' : '') + roi.toFixed(2) + '%');
     tkUnits.textContent = unitsSold;
 
+    let runningCash = parseNum(state.realCash) || 0;
+    const filteredLedger = filterTransactions(state.realLedger);
+    const chartHistory = [runningCash];
+
+    state.realLedger.forEach(tx => {
+        if (tx.type === 'ACHAT') runningCash -= tx.amount;
+        else if (tx.type === 'VENTE') runningCash += tx.amount;
+
+        if (filteredLedger.includes(tx)) {
+            chartHistory.push(runningCash);
+        }
+    });
+
+    currentChartData = chartHistory;
     renderLedger(state.realLedger);
     renderTradingChart();
 }
 
 function computeSim() {
-    let simCash = 0, simSpent = 0, simEarned = 0, simBoxes = 0;
-    const historyData = [0];
+    let simCash = parseNum(state.simInitialCash) || 0;
+    let simSpent = 0, simEarned = 0, simBoxes = 0;
+    const historyData = [simCash];
 
     state.simLedger.forEach(tx => {
         if (tx.type === 'ACHAT') {
@@ -197,9 +308,9 @@ function computeSim() {
     tkPnl.textContent = (netPnl >= 0 ? '+' : '') + formatCurrency(netPnl);
     tkPnl.className = 'val ' + (netPnl >= 0 ? 'positive' : 'negative');
     tkRoi.textContent = simBoxes + ' BOX';
-    tkUnits.textContent = 'SIM';
+    tkUnits.textContent = simBoxes;
 
-    const margin = (parseFloat(simBoxRevenueInput.value) || 450) - (parseFloat(simBoxCostInput.value) || 230);
+    const margin = (parseNum(simBoxRevenueInput.value) || 450) - (parseNum(simBoxCostInput.value) || 230);
     document.getElementById('sim-margin-val').textContent = '+' + formatCurrency(margin);
     document.getElementById('sim-pnl-val').textContent = (netPnl >= 0 ? '+' : '') + formatCurrency(netPnl);
 
@@ -240,31 +351,36 @@ function setupCanvasInteractivity() {
 function renderTradingChart() {
     const data = currentChartData;
     const rect = canvas.parentNode.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    
+    ctx.resetTransform();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, rect.width, rect.height);
 
     const paddingLeft = 15;
     const paddingRight = 65;
     const paddingTop = 25;
-    const paddingBottom = 25;
+    const paddingBottom = state.showVolume ? 45 : 25;
 
     const isWhiteTheme = state.theme === 'white';
     const gridColor = isWhiteTheme ? '#e5e7eb' : '#2a2e39';
-    const textColor = isWhiteTheme ? '#555555' : '#787b86';
 
-    // Grille de fond
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 0.5;
-
-    for (let i = 1; i <= 4; i++) {
-        const y = paddingTop + ((canvas.height - paddingTop - paddingBottom) / 5) * i;
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width - paddingRight, y); ctx.stroke();
-    }
-    for (let i = 1; i <= 6; i++) {
-        const x = paddingLeft + ((canvas.width - paddingLeft - paddingRight) / 7) * i;
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height - paddingBottom); ctx.stroke();
+    if (state.showGrid) {
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 0.5;
+        for (let i = 1; i <= 4; i++) {
+            const y = paddingTop + ((rect.height - paddingTop - paddingBottom) / 5) * i;
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(rect.width - paddingRight, y); ctx.stroke();
+        }
+        for (let i = 1; i <= 6; i++) {
+            const x = paddingLeft + ((rect.width - paddingLeft - paddingRight) / 7) * i;
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, rect.height - paddingBottom); ctx.stroke();
+        }
     }
 
     if (!data || data.length === 0) return;
@@ -273,47 +389,93 @@ function renderTradingChart() {
     const maxVal = Math.max(...data);
     const range = (maxVal - minVal) || 1;
 
-    const getX = (i) => paddingLeft + (i / Math.max(1, data.length - 1)) * (canvas.width - paddingLeft - paddingRight);
-    const getY = (val) => canvas.height - paddingBottom - ((val - minVal) / range) * (canvas.height - paddingTop - paddingBottom);
+    const getX = (i) => paddingLeft + (i / Math.max(1, data.length - 1)) * (rect.width - paddingLeft - paddingRight);
+    const getY = (val) => rect.height - paddingBottom - ((val - minVal) / range) * (rect.height - paddingTop - paddingBottom);
 
     const isUp = data[data.length - 1] >= data[0];
     const lineColor = isWhiteTheme ? '#111111' : (isUp ? '#089981' : '#f23645');
 
-    // Dégradé sous la courbe
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    if (isWhiteTheme) {
-        gradient.addColorStop(0, 'rgba(17, 17, 17, 0.15)');
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    if (state.showVolume) {
+        const volHeight = 25;
+        const volYBase = rect.height - 10;
+        const colWidth = Math.max(2, ((rect.width - paddingLeft - paddingRight) / Math.max(1, data.length)) - 3);
+
+        data.forEach((val, i) => {
+            const x = getX(i);
+            const isGreenOp = i === 0 || data[i] >= data[i-1];
+            ctx.fillStyle = isGreenOp ? 'rgba(8, 153, 129, 0.35)' : 'rgba(242, 54, 69, 0.35)';
+            ctx.fillRect(x - colWidth/2, volYBase - (volHeight * 0.7), colWidth, volHeight * 0.7);
+        });
+    }
+
+    if (state.chartType === 'candlestick' && data.length > 1) {
+        const candleWidth = Math.max(3, ((rect.width - paddingLeft - paddingRight) / data.length) * 0.6);
+        for (let i = 1; i < data.length; i++) {
+            const x = getX(i);
+            const openVal = data[i-1];
+            const closeVal = data[i];
+            const highVal = Math.max(openVal, closeVal) + (range * 0.03);
+            const lowVal = Math.min(openVal, closeVal) - (range * 0.03);
+
+            const yOpen = getY(openVal);
+            const yClose = getY(closeVal);
+            const yHigh = getY(highVal);
+            const yLow = getY(lowVal);
+
+            const isGreen = closeVal >= openVal;
+            ctx.strokeStyle = isGreen ? '#089981' : '#f23645';
+            ctx.fillStyle = isGreen ? '#089981' : '#f23645';
+            ctx.lineWidth = 1.5;
+
+            ctx.beginPath();
+            ctx.moveTo(x, yHigh);
+            ctx.lineTo(x, yLow);
+            ctx.stroke();
+
+            const bodyY = Math.min(yOpen, yClose);
+            const bodyH = Math.max(2, Math.abs(yClose - yOpen));
+            ctx.fillRect(x - candleWidth/2, bodyY, candleWidth, bodyH);
+        }
     } else {
-        gradient.addColorStop(0, isUp ? 'rgba(8, 153, 129, 0.25)' : 'rgba(242, 54, 69, 0.25)');
-        gradient.addColorStop(1, 'rgba(19, 23, 34, 0)');
-    }
-
-    // Tracé de la ligne
-    ctx.beginPath();
-    ctx.moveTo(getX(0), getY(data[0]));
-    for (let i = 1; i < data.length; i++) {
-        ctx.lineTo(getX(i), getY(data[i]));
-    }
-
-    ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    ctx.lineTo(getX(data.length - 1), canvas.height - paddingBottom);
-    ctx.lineTo(getX(0), canvas.height - paddingBottom);
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // Points
-    for (let i = 0; i < data.length; i++) {
         ctx.beginPath();
-        ctx.arc(getX(i), getY(data[i]), 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = lineColor;
-        ctx.fill();
+        ctx.moveTo(getX(0), getY(data[0]));
+        for (let i = 1; i < data.length; i++) {
+            ctx.lineTo(getX(i), getY(data[i]));
+        }
+
+        if (state.lineStyle === 'glow') {
+            ctx.shadowColor = lineColor;
+            ctx.shadowBlur = 8;
+        }
+
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        if (state.chartType === 'area') {
+            const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
+            if (isWhiteTheme) {
+                gradient.addColorStop(0, 'rgba(17, 17, 17, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            } else {
+                gradient.addColorStop(0, isUp ? 'rgba(8, 153, 129, 0.3)' : 'rgba(242, 54, 69, 0.3)');
+                gradient.addColorStop(1, 'rgba(19, 23, 34, 0)');
+            }
+            ctx.lineTo(getX(data.length - 1), rect.height - paddingBottom);
+            ctx.lineTo(getX(0), rect.height - paddingBottom);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+
+        for (let i = 0; i < data.length; i++) {
+            ctx.beginPath();
+            ctx.arc(getX(i), getY(data[i]), 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = lineColor;
+            ctx.fill();
+        }
     }
 
-    // Interaction Crosshair / Survol
     if (isHoveringCanvas && data.length > 0) {
         let closestIndex = 0;
         let minDistance = Infinity;
@@ -330,26 +492,22 @@ function renderTradingChart() {
         const pointY = getY(data[closestIndex]);
         const pointVal = data[closestIndex];
 
-        // Lignes pointillées du Viseur
         ctx.save();
         ctx.setLineDash([4, 4]);
         ctx.strokeStyle = isWhiteTheme ? '#888888' : '#94a3b8';
         ctx.lineWidth = 1;
 
-        // Ligne verticale
         ctx.beginPath();
         ctx.moveTo(pointX, 0);
-        ctx.lineTo(pointX, canvas.height - paddingBottom);
+        ctx.lineTo(pointX, rect.height - paddingBottom);
         ctx.stroke();
 
-        // Ligne horizontale
         ctx.beginPath();
         ctx.moveTo(0, pointY);
-        ctx.lineTo(canvas.width - paddingRight, pointY);
+        ctx.lineTo(rect.width - paddingRight, pointY);
         ctx.stroke();
         ctx.restore();
 
-        // Point survolé lumineux
         ctx.beginPath();
         ctx.arc(pointX, pointY, 6, 0, Math.PI * 2);
         ctx.fillStyle = isWhiteTheme ? '#000000' : '#ffffff';
@@ -358,23 +516,21 @@ function renderTradingChart() {
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Badge Valeur sur l'Axe Y à droite
         const badgeText = formatCurrency(pointVal);
         ctx.font = '10px monospace';
         const badgeWidth = ctx.measureText(badgeText).width + 10;
 
         ctx.fillStyle = lineColor;
-        ctx.fillRect(canvas.width - paddingRight, pointY - 10, badgeWidth, 20);
+        ctx.fillRect(rect.width - paddingRight, pointY - 10, badgeWidth, 20);
 
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(badgeText, canvas.width - paddingRight + 5, pointY + 3);
+        ctx.fillText(badgeText, rect.width - paddingRight + 5, pointY + 3);
 
-        // Tooltip Flottant
         const diff = closestIndex > 0 ? pointVal - data[closestIndex - 1] : 0;
-        const diffText = diff >= 0 ? `+${formatCurrency(diff)}` : formatCurrency(diff);
+        const diffText = state.privacyMode ? '••••' : (diff >= 0 ? `+${formatCurrency(diff)}` : formatCurrency(diff));
         const tooltipLines = [
-            `Opération #${closestIndex}`,
-            `Trésorerie: ${formatCurrency(pointVal)}`,
+            `Op #${closestIndex}`,
+            `Cash: ${formatCurrency(pointVal)}`,
             `Var: ${diffText}`
         ];
 
@@ -383,7 +539,7 @@ function renderTradingChart() {
         let boxX = pointX + 15;
         let boxY = pointY - 25;
 
-        if (boxX + boxWidth > canvas.width - paddingRight) boxX = pointX - boxWidth - 15;
+        if (boxX + boxWidth > rect.width - paddingRight) boxX = pointX - boxWidth - 15;
         if (boxY < 10) boxY = 10;
 
         ctx.fillStyle = isWhiteTheme ? 'rgba(255,255,255,0.95)' : 'rgba(15, 23, 42, 0.95)';
@@ -408,11 +564,15 @@ function renderTradingChart() {
 
 function renderLedger(list) {
     ledgerTbody.innerHTML = '';
-    if (list.length === 0) {
-        ledgerTbody.innerHTML = `<tr><td colspan="4" class="empty">${t('empty_orders')}</td></tr>`;
+    const filteredList = filterTransactions(list);
+    
+    if (filteredList.length === 0) {
+        ledgerTbody.innerHTML = `<tr><td colspan="5" class="empty">${t('empty_orders')}</td></tr>`;
         return;
     }
-    list.slice().reverse().forEach(tx => {
+    
+    filteredList.slice().reverse().forEach((tx) => {
+        const realIndex = list.indexOf(tx);
         const color = tx.type === 'ACHAT' ? 'var(--red)' : 'var(--green)';
         ledgerTbody.innerHTML += `
             <tr>
@@ -420,16 +580,36 @@ function renderLedger(list) {
                 <td style="color:${color}; font-weight:700">${tx.type}</td>
                 <td>${tx.desc || 'Box'}</td>
                 <td style="color:${color}">${tx.type==='ACHAT'?'-':'+'}${formatCurrency(tx.amount)}</td>
+                <td><button class="btn-delete-row" onclick="deleteTx(${realIndex})" title="Supprimer">🗑️</button></td>
             </tr>`;
     });
 }
 
+window.deleteTx = function(index) {
+    if (activeMode === 'real') {
+        state.realLedger.splice(index, 1);
+    } else {
+        state.simLedger.splice(index, 1);
+    }
+    saveState();
+    recompute();
+}
+
+document.getElementById('btn-privacy').addEventListener('click', () => {
+    state.privacyMode = !state.privacyMode;
+    document.getElementById('btn-privacy').style.opacity = state.privacyMode ? '1' : '0.5';
+    saveState();
+    updateBuyButtonText();
+    recompute();
+});
+
 btnRealBuyBox.addEventListener('click', () => {
-    const cost = parseFloat(realBoxCostInput.value) || 230;
+    const cost = parseNum(realBoxCostInput.value) || 230;
     state.realLedger.push({
         type: 'ACHAT',
+        timestamp: Date.now(),
         time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-        desc: 'Achat Box',
+        desc: state.lang === 'fr' ? 'Achat Box' : 'Box Buy',
         amount: cost
     });
     saveState(); recompute();
@@ -438,27 +618,32 @@ btnRealBuyBox.addEventListener('click', () => {
 document.getElementById('btn-real-sell-unit').addEventListener('click', () => {
     const client = document.getElementById('client-name').value.trim() || 'Client';
     const model = document.getElementById('client-model').value.trim() || 'Standard';
-    const price = parseFloat(document.getElementById('client-price').value) || 45;
+    const unitPrice = parseNum(document.getElementById('client-price').value) || 45;
+    const qty = parseInt(document.getElementById('client-qty').value) || 1;
+    const totalAmount = unitPrice * qty;
 
     state.realLedger.push({
         type: 'VENTE',
+        timestamp: Date.now(),
         time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-        desc: `${client} (${model})`,
-        amount: price,
-        units: 1
+        desc: `${client} (${model}) [x${qty}]`,
+        amount: totalAmount,
+        units: qty
     });
 
     document.getElementById('client-name').value = '';
     document.getElementById('client-model').value = '';
+    document.getElementById('client-qty').value = '1';
     saveState(); recompute();
 });
 
 document.getElementById('btn-sim-buy').addEventListener('click', () => {
     state.simLedger.push({
         type: 'ACHAT',
+        timestamp: Date.now(),
         time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
         desc: 'Box Sim',
-        amount: parseFloat(simBoxCostInput.value) || 230
+        amount: parseNum(simBoxCostInput.value) || 230
     });
     saveState(); recompute();
 });
@@ -466,193 +651,55 @@ document.getElementById('btn-sim-buy').addEventListener('click', () => {
 document.getElementById('btn-sim-sell').addEventListener('click', () => {
     state.simLedger.push({
         type: 'VENTE',
+        timestamp: Date.now(),
         time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-        desc: 'Liquidation Sim',
-        amount: parseFloat(simBoxRevenueInput.value) || 450
+        desc: 'Liquidation',
+        amount: parseNum(simBoxRevenueInput.value) || 450
     });
     saveState(); recompute();
 });
 
 document.getElementById('btn-clear-ledger').addEventListener('click', () => {
-    if (confirm(state.lang === 'fr' ? 'Réinitialiser le carnet ?' : 'Clear order book?')) {
+    const msg = state.lang === 'fr' ? 'Réinitialiser le carnet ?' : 'Clear order book?';
+    if (confirm(msg)) {
         if (activeMode === 'real') state.realLedger = [];
         else state.simLedger = [];
         saveState(); recompute();
     }
 });
 
-realInitialCashInput.addEventListener('input', (e) => { state.realCash = parseFloat(e.target.value) || 0; saveState(); recompute(); });
-realBoxCostInput.addEventListener('input', (e) => { state.realBoxCost = parseFloat(e.target.value) || 230; updateBuyButtonText(); saveState(); recompute(); });
-simBoxCostInput.addEventListener('input', (e) => { state.simBoxCost = parseFloat(e.target.value) || 230; saveState(); recompute(); });
-simBoxRevenueInput.addEventListener('input', (e) => { state.simBoxRevenue = parseFloat(e.target.value) || 450; saveState(); recompute(); });
+// Écouteurs pour le calculateur rapide
+calcPriceInput.addEventListener('input', updateQuickCalculator);
+calcQtyInput.addEventListener('input', updateQuickCalculator);
 
-document.getElementById('btn-snapshot').addEventListener('click', () => {
-    let cash = parseFloat(state.realCash) || 0;
-    let spent = 0, earned = 0;
-    state.realLedger.forEach(t => {
-        if (t.type === 'ACHAT') { cash -= t.amount; spent += t.amount; }
-        if (t.type === 'VENTE') { cash += t.amount; earned += t.amount; }
-    });
+realInitialCashInput.addEventListener('input', (e) => { state.realCash = parseNum(e.target.value); saveState(); recompute(); });
+realBoxCostInput.addEventListener('input', (e) => { state.realBoxCost = parseNum(e.target.value) || 230; updateBuyButtonText(); updateQuickCalculator(); saveState(); recompute(); });
+realInitialBoxesInput.addEventListener('input', (e) => { state.realInitialBoxes = parseNum(e.target.value); saveState(); recompute(); });
+realInitialUnitsInput.addEventListener('input', (e) => { state.realInitialUnits = parseNum(e.target.value); saveState(); recompute(); });
 
-    const last10 = state.realLedger.slice(-10).reverse();
-    let salesHtml = last10.length ? last10.map(s => `<tr><td>${s.time}</td><td>${s.desc}</td><td style="color:${s.type==='VENTE'?'var(--green)':'var(--red)'}">${formatCurrency(s.amount)}</td></tr>`).join('') : `<tr><td colspan="3">Aucune vente récente</td></tr>`;
-
-    const chartDataUrl = canvas.toDataURL('image/png');
-
-    document.getElementById('specimen-content').innerHTML = `
-        <div id="bilan-printable" style="background:var(--bg-side); color:var(--text-primary); padding:10px;">
-            <div style="font-size:14px; font-weight:bold; margin-bottom:6px;">STARZ // RAPPORT FINANCIER</div>
-            <div style="font-size:10px; color:var(--text-secondary); margin-bottom:10px;">Date : ${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}</div>
-            <hr style="border-color:var(--border); margin-bottom:10px;">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; font-size:11px;">
-                <div>Trésorerie Initiale : <strong>${formatCurrency(state.realCash)}</strong></div>
-                <div>Total Investissements : <strong>${formatCurrency(spent)}</strong></div>
-                <div>Total Recettes : <strong>${formatCurrency(earned)}</strong></div>
-                <div>Profit Net : <strong style="color:var(--green);">${formatCurrency(earned - spent)}</strong></div>
-            </div>
-            <div style="font-size:12px; font-weight:bold; margin-bottom:6px;">Aperçu Graphique</div>
-            <img src="${chartDataUrl}" style="width:100%; height:120px; object-fit:contain; background:var(--bg-main); border:1px solid var(--border); margin-bottom:10px; border-radius:3px;">
-            <div style="font-size:12px; font-weight:bold; margin-bottom:6px;">10 Dernières Opérations</div>
-            <table style="width:100%; border-collapse:collapse; font-size:10px;">
-                <thead><tr style="border-bottom:1px solid var(--border); color:var(--text-secondary);"><th style="text-align:left; padding:4px;">Heure</th><th style="text-align:left; padding:4px;">Détail</th><th style="text-align:left; padding:4px;">Montant</th></tr></thead>
-                <tbody>${salesHtml}</tbody>
-            </table>
-            <hr style="border-color:var(--border); margin:10px 0;">
-            <div style="font-size:13px; font-weight:bold;">Solde Final Liquide : ${formatCurrency(cash)}</div>
-        </div>
-    `;
-    document.getElementById('specimen-modal').classList.remove('hidden');
-});
-
-document.getElementById('close-modal').addEventListener('click', () => document.getElementById('specimen-modal').classList.add('hidden'));
-document.getElementById('close-specimen').addEventListener('click', () => document.getElementById('specimen-modal').classList.add('hidden'));
-
-document.getElementById('print-specimen').addEventListener('click', () => {
-    window.print();
-});
-
-document.getElementById('download-image').addEventListener('click', () => {
-    const chartImage = canvas.toDataURL('image/png');
-
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
-
-    tempCanvas.width = 600;
-    tempCanvas.height = 700;
-
-    const isWhiteTheme = state.theme === 'white';
-    const bgColor = isWhiteTheme ? '#ffffff' : (state.theme === 'black' ? '#080808' : '#1e222d');
-    const textColor = isWhiteTheme ? '#111111' : '#d1d4dc';
-    const subTextColor = isWhiteTheme ? '#555555' : '#787b86';
-
-    tempCtx.fillStyle = bgColor;
-    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-    tempCtx.fillStyle = textColor;
-    tempCtx.font = 'bold 16px monospace';
-    tempCtx.fillText('STARZ // RAPPORT FINANCIER', 20, 35);
-
-    tempCtx.fillStyle = subTextColor;
-    tempCtx.font = '11px monospace';
-    tempCtx.fillText(`Date : ${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}`, 20, 55);
-
-    tempCtx.strokeStyle = isWhiteTheme ? '#d1d5db' : '#2a2e39';
-    tempCtx.lineWidth = 1;
-    tempCtx.beginPath();
-    tempCtx.moveTo(20, 70);
-    tempCtx.lineTo(580, 70);
-    tempCtx.stroke();
-
-    let cash = parseFloat(state.realCash) || 0;
-    let spent = 0, earned = 0;
-    state.realLedger.forEach(t => {
-        if (t.type === 'ACHAT') { cash -= t.amount; spent += t.amount; }
-        if (t.type === 'VENTE') { cash += t.amount; earned += t.amount; }
-    });
-
-    tempCtx.fillStyle = textColor;
-    tempCtx.font = '12px monospace';
-    tempCtx.fillText(`Trésorerie Initiale : ${formatCurrency(state.realCash)}`, 20, 95);
-    tempCtx.fillText(`Total Investissements : ${formatCurrency(spent)}`, 20, 115);
-    tempCtx.fillText(`Total Recettes : ${formatCurrency(earned)}`, 300, 95);
-    
-    tempCtx.fillStyle = earned - spent >= 0 ? '#089981' : '#f23645';
-    tempCtx.fillText(`Profit Net : ${formatCurrency(earned - spent)}`, 300, 115);
-
-    tempCtx.fillStyle = textColor;
-    tempCtx.font = 'bold 13px monospace';
-    tempCtx.fillText('Aperçu Graphique', 20, 150);
-
-    const img = new Image();
-    img.src = chartImage;
-    img.onload = () => {
-        tempCtx.drawImage(img, 20, 165, 560, 200);
-
-        tempCtx.fillStyle = textColor;
-        tempCtx.font = 'bold 13px monospace';
-        tempCtx.fillText('10 Dernières Opérations', 20, 395);
-
-        let yPos = 420;
-        const last10 = state.realLedger.slice(-10).reverse();
-
-        if (last10.length === 0) {
-            tempCtx.fillStyle = subTextColor;
-            tempCtx.font = '11px monospace';
-            tempCtx.fillText('Aucune vente récente', 20, yPos);
-        } else {
-            last10.forEach(op => {
-                tempCtx.fillStyle = subTextColor;
-                tempCtx.font = '11px monospace';
-                tempCtx.fillText(op.time, 20, yPos);
-                tempCtx.fillText(op.desc, 100, yPos);
-
-                tempCtx.fillStyle = op.type === 'VENTE' ? '#089981' : '#f23645';
-                tempCtx.fillText(formatCurrency(op.amount), 480, yPos);
-                yPos += 20;
-            });
-        }
-
-        tempCtx.strokeStyle = isWhiteTheme ? '#d1d5db' : '#2a2e39';
-        tempCtx.beginPath();
-        tempCtx.moveTo(20, yPos + 10);
-        tempCtx.lineTo(580, yPos + 10);
-        tempCtx.stroke();
-
-        tempCtx.fillStyle = textColor;
-        tempCtx.font = 'bold 14px monospace';
-        tempCtx.fillText(`Solde Final Liquide : ${formatCurrency(cash)}`, 20, yPos + 35);
-
-        const link = document.createElement('a');
-        link.download = `starz_bilan_${Date.now()}.png`;
-        link.href = tempCanvas.toDataURL('image/png');
-        link.click();
-    };
-});
-
-const settingsModal = document.getElementById('settings-modal');
-document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
-document.getElementById('close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
+simInitialCashInput.addEventListener('input', (e) => { state.simInitialCash = parseNum(e.target.value); saveState(); recompute(); });
+simBoxCostInput.addEventListener('input', (e) => { state.simBoxCost = parseNum(e.target.value) || 230; saveState(); recompute(); });
+simBoxRevenueInput.addEventListener('input', (e) => { state.simBoxRevenue = parseNum(e.target.value) || 450; saveState(); recompute(); });
 
 document.getElementById('save-settings').addEventListener('click', () => {
     state.theme = document.getElementById('setting-theme').value;
     state.lang = document.getElementById('setting-lang').value;
     state.currency = document.getElementById('setting-currency').value;
+    state.chartType = document.getElementById('setting-chart-type').value;
+    state.lineStyle = document.getElementById('setting-line-style').value;
+    state.showVolume = document.getElementById('setting-show-volume').value === 'true';
+    state.showGrid = document.getElementById('setting-show-grid').value === 'true';
+
     saveState();
     updateTexts();
     updateBuyButtonText();
     recompute();
-    settingsModal.classList.add('hidden');
+    document.getElementById('settings-modal').classList.add('hidden');
 });
 
-document.getElementById('btn-export').addEventListener('click', () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
-    const dlAnchor = document.createElement('a');
-    dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", `starz_pro_${Date.now()}.json`);
-    document.body.appendChild(dlAnchor);
-    dlAnchor.click();
-    dlAnchor.remove();
-});
+const settingsModal = document.getElementById('settings-modal');
+document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
+document.getElementById('close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
 
 loadState();
 init();
