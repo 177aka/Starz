@@ -1,13 +1,13 @@
 {
-    "name": "Taximan",
-    "short_name": "Taximan",
+    "name": "Starz Pro Terminal",
+    "short_name": "Starz",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#131722",
     "theme_color": "#131722",
     "icons": [
         {
-            "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23089981'><rect width='512' height='512' rx='100' fill='%23131722'/><text x='50%' y='60%' dominant-baseline='middle' text-anchor='middle' font-size='280' font-family='sans-serif' font-weight='bold' fill='%23089981'>T</text></svg>",
+            "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%232962ff'><rect width='512' height='512' rx='100' fill='%23131722'/><text x='50%' y='60%' dominant-baseline='middle' text-anchor='middle' font-size='280' font-family='sans-serif' font-weight='bold' fill='%232962ff'>S</text></svg>",
             "sizes": "512x512",
             "type": "image/svg+xml",
             "purpose": "any maskable"
