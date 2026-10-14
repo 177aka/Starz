@@ -1,236 +1,245 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="basic" data-lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Starz Pro</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>S</text></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>STARZ PRO</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#131722">
 </head>
-<body>
+
+<body oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;">
     <div class="app-viewport">
+        <!-- BARRE SUPÉRIEURE -->
         <header class="top-bar">
-            <div class="brand-zone">
-                <span class="symbol">STARZ PRO</span>
+            <div class="brand-container">
+                <span class="logo-title">STARZ PRO</span>
             </div>
-            
-            <div class="ohlc-ticker">
-                <div class="ticker-item"><span class="lbl">TRÉSORERIE</span><span class="val" id="tk-cash">0.00 $</span></div>
-                <div class="ticker-item"><span class="lbl">P&L NET</span><span class="val" id="tk-pnl">+0.00 $</span></div>
-                <div class="ticker-item"><span class="lbl">ROI</span><span class="val" id="tk-roi">0.00%</span></div>
-                <div class="ticker-item"><span class="lbl">UNITÉS</span><span class="val neutral" id="tk-units">0</span></div>
+
+            <div class="stats-pills">
+                <div class="pill">
+                    <span class="pill-lbl" data-i18n="lbl-cash">TRÉSORERIE</span>
+                    <span class="pill-val" id="tk-cash">0.00 $</span>
+                </div>
+                <div class="pill">
+                    <span class="pill-lbl" data-i18n="lbl-pnl">P&L NET</span>
+                    <span class="pill-val" id="tk-pnl">+0.00 $</span>
+                </div>
+                <div class="pill">
+                    <span class="pill-lbl">ROI</span>
+                    <span class="pill-val" id="tk-roi">0.00%</span>
+                </div>
+                <div class="pill hide-mobile">
+                    <span class="pill-lbl" data-i18n="lbl-units">UNITÉS</span>
+                    <span class="pill-val" id="tk-units">0</span>
+                </div>
             </div>
 
             <div class="top-actions">
-                <button id="btn-privacy" class="btn-icon">Confidentialité</button>
-                <button id="btn-settings" class="btn-icon">Paramètres</button>
+                <button id="btn-lang" class="btn-action">EN / FR</button>
+                <button id="btn-theme-toggle" class="btn-action">Thème</button>
+                <button id="btn-privacy" class="btn-action">Privé</button>
             </div>
         </header>
 
+        <!-- LAYOUT PRINCIPAL -->
         <main class="main-layout">
-            <aside class="left-toolbar">
-                <button class="tool-btn active" id="tool-crosshair" title="Curseur">┼</button>
-                <button class="tool-btn" id="tool-line" title="Tracer une ligne">╱</button>
-                <button class="tool-btn" id="tool-clear-drawings" title="Effacer les tracés">✕</button>
-            </aside>
-
-            <section class="chart-area">
-                <div class="chart-header-bar">
-                    <div class="symbol-info">
-                        <span class="pair-title">STARZ / CASH</span>
-                        <span class="chart-tf" id="active-tf-label">1D</span>
+            <section class="chart-section">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3 data-i18n="chart-title">ÉVOLUTION DE LA TRÉSORERIE</h3>
+                        <span class="badge" id="active-tf-label">1 JOUR</span>
                     </div>
-                    <div class="chart-filters">
-                        <button class="filter-btn active" data-filter="1d">1D</button>
-                        <button class="filter-btn" data-filter="2d">2D</button>
-                        <button class="filter-btn" data-filter="3d">3D</button>
-                        <button class="filter-btn" data-filter="7d">7J</button>
-                        <button class="filter-btn" data-filter="all">TOUT</button>
+                    <div class="chart-controls-group">
+                        <!-- Sélecteur de style de graphique -->
+                        <select id="chart-style-select" class="tf-btn" style="background:var(--bg-card); color:var(--text-primary);">
+                            <option value="line" data-i18n="opt-line">Ligne</option>
+                            <option value="step" data-i18n="opt-step">Cubes (Step)</option>
+                            <option value="area" data-i18n="opt-area">Aire Dégradée</option>
+                        </select>
+                        <div class="chart-timeframe-selector">
+                            <button class="tf-btn active" data-filter="1d" data-i18n="tf-1d">1 J</button>
+                            <button class="tf-btn" data-filter="2d" data-i18n="tf-2d">2 J</button>
+                            <button class="tf-btn" data-filter="3d" data-i18n="tf-3d">3 J</button>
+                            <button class="tf-btn" data-filter="7d" data-i18n="tf-7d">7 J</button>
+                            <button class="tf-btn" data-filter="all" data-i18n="tf-all">Tout</button>
+                        </div>
                     </div>
                 </div>
-                <div class="canvas-wrapper">
+
+                <div class="canvas-container">
                     <canvas id="tradingChart"></canvas>
-                    <div id="crosshair-legend" class="crosshair-legend"></div>
                 </div>
             </section>
 
-            <aside class="right-sidebar">
-                <nav class="sidebar-tabs">
-                    <button class="side-tab active" data-tab="tab-execution">Ordres</button>
-                    <button class="side-tab" data-tab="tab-comparator">Comparateur</button>
-                    <button class="side-tab" data-tab="tab-simulator">Simulateur</button>
+            <!-- PANNEAU DE CONTRÔLE -->
+            <aside class="control-panel">
+                <nav class="nav-tabs">
+                    <button class="tab-btn active" data-tab="tab-execution" data-i18n="tab-orders">Ordres</button>
+                    <button class="tab-btn" data-tab="tab-comparator" data-i18n="tab-comp">Comparateur</button>
+                    <button class="tab-btn" data-tab="tab-simulator" data-i18n="tab-sim">Simulation</button>
                 </nav>
 
-                <div class="sidebar-content">
-                    <div id="tab-execution" class="tab-panel active">
-                        <div class="control-box">
-                            <div class="box-title">CAPITAL & STOCK</div>
-                            <div class="form-row">
+                <div class="tab-contents">
+                    <!-- ONGLET 1 : ORDRES -->
+                    <div id="tab-execution" class="tab-pane active">
+                        <div class="card">
+                            <div class="card-title" data-i18n="card-capital">CAPITAL & STOCK</div>
+                            <div class="grid-2">
                                 <div class="field">
-                                    <label>Trésorerie</label>
-                                    <input type="text" inputmode="decimal" id="real-initial-cash" value="0">
+                                    <label data-i18n="lbl-init-cash">Trésorerie Initiale</label>
+                                    <input type="text" inputmode="decimal" id="real-initial-cash" value="1000">
                                 </div>
                                 <div class="field">
-                                    <label>Coût Box</label>
+                                    <label data-i18n="lbl-box-cost">Coût Box Standard</label>
                                     <input type="text" inputmode="decimal" id="real-box-cost" value="230">
                                 </div>
                             </div>
-                            <div class="form-row" style="margin-top: 4px;">
-                                <div class="field">
-                                    <label>Stock Box</label>
-                                    <input type="text" inputmode="numeric" id="real-initial-boxes" value="0">
-                                </div>
-                                <div class="field">
-                                    <label>Ventes Init.</label>
-                                    <input type="text" inputmode="numeric" id="real-initial-units" value="0">
-                                </div>
-                            </div>
-                            <button id="btn-real-buy-box" class="btn btn-buy" style="margin-top: 4px;">ACHETER 1 BOX</button>
+                            <button id="btn-real-buy-box" class="btn btn-buy" data-i18n="btn-buy-box">ACHETER 1 BOX</button>
                         </div>
 
-                        <div class="control-box">
-                            <div class="box-title">VENTE CLIENT DIRECTE</div>
-                            <div class="form-row">
+                        <div class="card">
+                            <div class="card-title" data-i18n="card-sale">VENTE CLIENT DIRECTE</div>
+                            <div class="grid-2">
                                 <div class="field">
-                                    <label>Client</label>
+                                    <label data-i18n="lbl-client">Client</label>
                                     <input type="text" id="client-name" placeholder="Nom">
                                 </div>
                                 <div class="field">
-                                    <label>Modèle</label>
+                                    <label data-i18n="lbl-model">Modèle</label>
                                     <input type="text" id="client-model" placeholder="Ex: 45k">
                                 </div>
                             </div>
-                            <div class="form-row" style="margin-top: 4px;">
+                            <div class="grid-2" style="margin-top:6px;">
                                 <div class="field">
-                                    <label>Prix Unitaire</label>
+                                    <label data-i18n="lbl-unit-price">Prix Unitaire</label>
                                     <input type="text" inputmode="decimal" id="client-price" value="45">
                                 </div>
                                 <div class="field">
-                                    <label>Quantité</label>
+                                    <label data-i18n="lbl-qty">Quantité</label>
                                     <input type="text" inputmode="numeric" id="client-qty" value="1">
                                 </div>
                             </div>
-                            <button id="btn-real-sell-unit" class="btn btn-sell" style="margin-top: 4px;">VALIDER VENTE</button>
+                            <button id="btn-real-sell-unit" class="btn btn-sell" style="margin-top:6px;" data-i18n="btn-validate-sale">VALIDER VENTE</button>
                         </div>
 
-                        <div class="ledger-drawer">
-                            <div class="drawer-header">
-                                <span>CARNET D'ORDRES</span>
-                                <button id="btn-clear-ledger" class="btn-clean">VIDER</button>
+                        <div class="card flex-grow">
+                            <div class="card-header-flex">
+                                <span data-i18n="card-ledger">CARNET D'ORDRES</span>
+                                <button id="btn-clear-ledger" class="btn-subtle" data-i18n="btn-clear">Vider</button>
                             </div>
-                            <div class="table-scroll">
-                                <table class="pro-table">
+                            <div class="table-wrapper">
+                                <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>HEURE</th>
-                                            <th>TYPE</th>
-                                            <th>DÉTAIL</th>
-                                            <th>NET</th>
+                                            <th data-i18n="th-time">Heure</th>
+                                            <th data-i18n="th-type">Type</th>
+                                            <th data-i18n="th-details">Détails</th>
+                                            <th data-i18n="th-net">Net</th>
                                             <th></th>
                                         </tr>
                                     </thead>
                                     <tbody id="ledger-tbody">
-                                        <tr><td colspan="5" class="empty">AUCUN ORDRE</td></tr>
+                                        <tr><td colspan="5" class="empty" data-i18n="empty-ledger">Aucun ordre</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
 
-                    <div id="tab-comparator" class="tab-panel">
-                        <div class="control-box">
-                            <div class="box-title">COMPARATEUR LONG TERME</div>
-                            <div class="form-row">
+                    <!-- ONGLET 2 : COMPARATEUR -->
+                    <div id="tab-comparator" class="tab-pane">
+                        <div class="card">
+                            <div class="card-title" data-i18n="card-comp-title">COMPARATEUR DE STRATÉGIES</div>
+                            <div class="grid-2">
                                 <div class="field">
-                                    <label>Volume Simulé</label>
-                                    <input type="text" inputmode="numeric" id="comp-volume" value="10">
+                                    <label data-i18n="lbl-volume">Volume (Boîtes)</label>
+                                    <input type="text" inputmode="numeric" id="comp-volume" value="1">
                                 </div>
                                 <div class="field">
-                                    <label>Mode de Calcul</label>
-                                    <select id="comp-mode-type">
-                                        <option value="boxes">Par Boîtes</option>
-                                        <option value="units">Par Unités Totales</option>
-                                    </select>
+                                    <label data-i18n="lbl-units-box">Unités / Boîte</label>
+                                    <input type="text" inputmode="numeric" id="comp-units-per-box" value="10">
                                 </div>
                             </div>
-                            <div class="form-row" style="margin-top: 6px;">
-                                <div class="field">
-                                    <label>Modèle A - Coût</label>
-                                    <input type="text" inputmode="decimal" id="comp-cost-a" value="190">
-                                </div>
-                                <div class="field">
-                                    <label>Unités/Box</label>
-                                    <input type="text" inputmode="numeric" id="comp-units-a" value="10">
-                                </div>
-                                <div class="field">
-                                    <label>Prix Unité</label>
-                                    <input type="text" inputmode="decimal" id="comp-sell-a" value="30">
-                                </div>
-                            </div>
-                            <div class="form-row" style="margin-top: 6px;">
-                                <div class="field">
-                                    <label>Modèle B - Coût</label>
-                                    <input type="text" inputmode="decimal" id="comp-cost-b" value="230">
-                                </div>
-                                <div class="field">
-                                    <label>Unités/Box</label>
-                                    <input type="text" inputmode="numeric" id="comp-units-b" value="10">
-                                </div>
-                                <div class="field">
-                                    <label>Prix Unité</label>
-                                    <input type="text" inputmode="decimal" id="comp-sell-b" value="45">
+
+                            <div class="sub-card">
+                                <div class="sub-title">MODÈLE A (Ex: 190$ / 30$)</div>
+                                <div class="grid-2">
+                                    <div class="field">
+                                        <label data-i18n="lbl-cost-a">Coût Box A</label>
+                                        <input type="text" inputmode="decimal" id="comp-cost-a" value="190">
+                                    </div>
+                                    <div class="field">
+                                        <label data-i18n="lbl-sell-a">Revente Unité A</label>
+                                        <input type="text" inputmode="decimal" id="comp-sell-a" value="30">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="sim-stats" style="margin-top: 8px;">
-                                <div class="stat-row"><span>Profit Modèle A:</span><strong id="comp-profit-a">+110.00 $</strong></div>
-                                <div class="stat-row"><span>Profit Modèle B:</span><strong id="comp-profit-b">+220.00 $</strong></div>
-                                <div class="stat-row"><span>Le plus rentable:</span><strong id="comp-best" style="color:var(--green);">Modèle B</strong></div>
+
+                            <div class="sub-card">
+                                <div class="sub-title">MODÈLE B (Ex: 230$ / 45$)</div>
+                                <div class="grid-2">
+                                    <div class="field">
+                                        <label data-i18n="lbl-cost-b">Coût Box B</label>
+                                        <input type="text" inputmode="decimal" id="comp-cost-b" value="230">
+                                    </div>
+                                    <div class="field">
+                                        <label data-i18n="lbl-sell-b">Revente Unité B</label>
+                                        <input type="text" inputmode="decimal" id="comp-sell-b" value="45">
+                                    </div>
+                                </div>
                             </div>
+
+                            <div class="result-box">
+                                <div class="res-row"><span data-i18n="res-prof-a">Profit Modèle A:</span><strong id="comp-profit-a">+110.00 $</strong></div>
+                                <div class="res-row"><span data-i18n="res-prof-b">Profit Modèle B:</span><strong id="comp-profit-b">+220.00 $</strong></div>
+                                <div class="res-row highlight"><span data-i18n="res-best">Le plus rentable:</span><strong id="comp-best">Modèle B</strong></div>
+                            </div>
+                            <div id="comp-advice" class="advice-banner">--</div>
                         </div>
                     </div>
 
-                    <div id="tab-simulator" class="tab-panel">
-                        <div class="control-box">
-                            <div class="box-title">CALCULATEUR DE MARGE RAPIDE</div>
-                            <div class="form-row">
+                    <!-- ONGLET 3 : SIMULATEUR -->
+                    <div id="tab-simulator" class="tab-pane">
+                        <div class="card">
+                            <div class="card-title" data-i18n="card-calc-fast">CALCULATEUR DE MARGE RAPIDE</div>
+                            <div class="grid-2">
                                 <div class="field">
-                                    <label>Prix Unitaire</label>
+                                    <label data-i18n="lbl-unit-price">Prix Unitaire</label>
                                     <input type="text" inputmode="decimal" id="calc-price" value="45">
                                 </div>
                                 <div class="field">
-                                    <label>Quantité</label>
+                                    <label data-i18n="lbl-qty">Quantité</label>
                                     <input type="text" inputmode="numeric" id="calc-qty" value="1">
                                 </div>
                             </div>
-                            <div class="sim-stats" style="margin-top: 4px; padding: 4px;">
-                                <div class="stat-row"><span>CA Estimé:</span><strong id="calc-rev-val">45.00 $</strong></div>
-                                <div class="stat-row"><span>Coût Estimé (PRU):</span><strong id="calc-cost-val" style="color:var(--red);">23.00 $</strong></div>
-                                <div class="stat-row"><span>Profit Net Prévu:</span><strong id="calc-profit-val">+22.00 $</strong></div>
+                            <div class="result-box">
+                                <div class="res-row"><span data-i18n="res-ca">CA Estimé:</span><strong id="calc-rev-val">45.00 $</strong></div>
+                                <div class="res-row"><span data-i18n="res-pru">Coût Estimé (PRU):</span><strong id="calc-cost-val" class="negative">23.00 $</strong></div>
+                                <div class="res-row highlight"><span data-i18n="res-net">Profit Net Prévu:</span><strong id="calc-profit-val">+22.00 $</strong></div>
                             </div>
                         </div>
 
-                        <div class="control-box" style="margin-top: 6px;">
-                            <div class="box-title">SIMULATION GLOBALE</div>
-                            <div class="field" style="margin-bottom: 4px;">
-                                <label>Trésorerie Initiale</label>
-                                <input type="text" inputmode="decimal" id="sim-initial-cash" value="0">
+                        <div class="card">
+                            <div class="card-title" data-i18n="card-sim-graph">SIMULATION SUR GRAPHIQUE</div>
+                            <div class="field">
+                                <label data-i18n="lbl-sim-cash">Trésorerie Initiale Sim</label>
+                                <input type="text" inputmode="decimal" id="sim-initial-cash" value="1000">
                             </div>
-                            <div class="form-row">
+                            <div class="grid-2" style="margin-top:6px;">
                                 <div class="field">
-                                    <label>Coût Box Sim</label>
+                                    <label data-i18n="lbl-sim-cost">Coût Box Sim</label>
                                     <input type="text" inputmode="decimal" id="sim-box-cost" value="230">
                                 </div>
                                 <div class="field">
-                                    <label>Revente Box Sim</label>
+                                    <label data-i18n="lbl-sim-rev">Revente Box Sim</label>
                                     <input type="text" inputmode="decimal" id="sim-box-revenue" value="450">
                                 </div>
                             </div>
-                            <div class="form-row" style="margin-top: 4px;">
-                                <button id="btn-sim-buy" class="btn btn-buy">ACHAT TEST</button>
-                                <button id="btn-sim-sell" class="btn btn-sell">LIQUIDATION</button>
+                            <div class="grid-2" style="margin-top:8px;">
+                                <button id="btn-sim-buy" class="btn btn-buy" data-i18n="btn-sim-buy">ACHAT TEST</button>
+                                <button id="btn-sim-sell" class="btn btn-sell" data-i18n="btn-sim-sell">LIQUIDATION</button>
                             </div>
+                            <button id="btn-sim-reset" class="btn btn-secondary" style="margin-top:6px;" data-i18n="btn-sim-reset">RÉINITIALISER SIM</button>
                         </div>
                     </div>
                 </div>
@@ -240,78 +249,6 @@
 
     <div id="notification-banner" class="notification-banner hidden"></div>
 
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-card">
-            <div class="modal-head">
-                <span>Paramètres</span>
-                <button id="close-settings" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="field" style="margin-bottom: 8px;">
-                    <label>Thème Visuel</label>
-                    <select id="setting-theme">
-                        <option value="basic">Basic (Dark)</option>
-                        <option value="black">Black (OLED)</option>
-                        <option value="white">White (Light)</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 8px;">
-                    <label>Langue</label>
-                    <select id="setting-lang">
-                        <option value="fr">Français</option>
-                        <option value="en">English</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 8px;">
-                    <label>Devise</label>
-                    <select id="setting-currency">
-                        <option value="CAD">CAD ($)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                    </select>
-                </div>
-                <hr style="border:0; border-top:1px solid var(--border); margin:6px 0;">
-                <div class="field" style="margin-bottom: 8px;">
-                    <label>Type de Graphique</label>
-                    <select id="setting-chart-type">
-                        <option value="candlestick">Bougies Japonaises</option>
-                        <option value="line">Ligne Simple</option>
-                        <option value="area">Aire Dégradée</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 8px;">
-                    <label>Style de Ligne</label>
-                    <select id="setting-line-style">
-                        <option value="glow">Néon Lumineux (Glow)</option>
-                        <option value="solid">Ligne Pleine</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 8px;">
-                    <label>Histogramme de Volume</label>
-                    <select id="setting-show-volume">
-                        <option value="true">Affiché</option>
-                        <option value="false">Masqué</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Grille de Fond</label>
-                    <select id="setting-show-grid">
-                        <option value="true">Affichée</option>
-                        <option value="false">Masquée</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-foot">
-                <button id="save-settings" class="btn btn-primary">Enregistrer</button>
-            </div>
-        </div>
-    </div>
-
     <script src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
-        }
-    </script>
 </body>
 </html>
