@@ -1,185 +1,148 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="basic" data-lang="en">
+<html lang="fr" data-theme="basic">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Starz</title>
+    <title>Taximan</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#131722">
 </head>
 <body>
     <div class="app-viewport">
+        <!-- Barre supérieure -->
         <header class="top-bar">
             <div class="top-bar-main">
                 <div class="brand-zone">
-                    <span class="symbol">STARZ</span>
-                    <span class="badge" id="badge-mode">REAL</span>
+                    <span class="symbol">TAXIMAN</span>
+                    <span class="badge" id="status-badge">PRÊT</span>
                 </div>
                 <div class="top-actions">
-                    <div class="mode-switch">
-                        <button class="mode-tab active" data-mode="real">REAL</button>
-                        <button class="mode-tab" data-mode="sim">SIM</button>
-                    </div>
-                    <button id="btn-privacy" class="btn-icon" title="Privacy Mode">👁️</button>
+                    <button id="btn-bilan" class="btn-icon">Bilan</button>
                     <button id="btn-settings" class="btn-icon">⚙️</button>
+                    <button id="btn-export" class="btn-icon">JSON</button>
                 </div>
             </div>
             
             <div class="ohlc-ticker">
-                <div class="ticker-item"><span class="lbl" data-i18n="cash">TREASURY</span><span class="val" id="tk-cash">0.00 $</span></div>
-                <div class="ticker-item"><span class="lbl" data-i18n="pnl">NET P&L</span><span class="val" id="tk-pnl">+0.00 $</span></div>
-                <div class="ticker-item"><span class="lbl" data-i18n="roi">ROI</span><span class="val" id="tk-roi">0.00%</span></div>
-                <div class="ticker-item"><span class="lbl" data-i18n="units">UNITS</span><span class="val neutral" id="tk-units">0</span></div>
+                <div class="ticker-item">
+                    <span class="lbl">COÛT TOTAL</span>
+                    <span class="val highlight" id="tk-cost">0.00 $</span>
+                </div>
+                <div class="ticker-item">
+                    <span class="lbl">DISTANCE</span>
+                    <span class="val" id="tk-dist">0.00 km</span>
+                </div>
+                <div class="ticker-item">
+                    <span class="lbl">VITESSE</span>
+                    <span class="val" id="tk-speed">0 km/h</span>
+                </div>
+                <div class="ticker-item">
+                    <span class="lbl">DURÉE</span>
+                    <span class="val" id="tk-time">00:00</span>
+                </div>
             </div>
         </header>
 
+        <!-- Layout Principal -->
         <main class="main-layout">
+            <!-- Zone Graphique / Compteur -->
             <section class="chart-area">
                 <div class="chart-header-bar">
                     <div class="symbol-info">
-                        <span class="pair-title">STARZ / CASH</span>
-                        <span class="chart-tf" data-i18n="chart_sub">FINANCIAL PERFORMANCE</span>
-                    </div>
-                    <div class="chart-filters">
-                        <button class="filter-btn active" data-filter="all" data-i18n="filter_all">ALL</button>
-                        <button class="filter-btn" data-filter="today" data-i18n="filter_today">TODAY</button>
-                        <button class="filter-btn" data-filter="7d" data-i18n="filter_7d">7D</button>
+                        <span class="pair-title">TAXIMAN / LIVE METER</span>
+                        <span class="chart-tf" id="gps-accuracy-label">GPS: EN ATTENTE</span>
                     </div>
                 </div>
                 <div class="canvas-wrapper">
-                    <canvas id="tradingChart"></canvas>
-                    <div id="crosshair-legend" class="crosshair-legend"></div>
+                    <canvas id="speedChart"></canvas>
+                    <div id="meter-display" class="meter-overlay">
+                        <div class="meter-rate-status" id="rate-type-display">PRISE EN CHARGE</div>
+                        <div class="meter-amount" id="meter-amount-large">0.00 $</div>
+                        <div class="meter-details">
+                            <span>Essence: <strong id="lbl-fuel-spent">0.00 $</strong></span>
+                            <span>Attente: <strong id="lbl-wait-time">00:00</strong></span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
+            <!-- Panneau d'Exécution & Contrôles -->
             <aside class="execution-sidebar">
                 <div class="sidebar-tab-header">
-                    <span data-i18n="execution_title">ORDER EXECUTION</span>
+                    <span>PANNEAU DE CONTRÔLE</span>
                 </div>
 
-                <div id="panel-real" class="execution-panel active">
+                <div class="execution-panel active">
+                    <!-- Contrôles Principaux de Course -->
                     <div class="control-box">
-                        <div class="box-title" data-i18n="box_capital">CAPITAL & STOCK</div>
-                        <div class="form-row">
-                            <div class="field">
-                                <label data-i18n="lbl_treasury">Treasury</label>
-                                <input type="text" inputmode="decimal" id="real-initial-cash" value="0">
-                            </div>
-                            <div class="field">
-                                <label data-i18n="lbl_box_cost">Box Cost</label>
-                                <input type="text" inputmode="decimal" id="real-box-cost" value="230">
-                            </div>
+                        <div class="box-title">CONTRÔLE DE LA COURSE</div>
+                        <div class="action-grid">
+                            <button id="btn-start" class="btn btn-sell">► DÉMARRER</button>
+                            <button id="btn-pause" class="btn btn-warning" disabled>❚❚ PAUSE</button>
                         </div>
-                        <div class="form-row" style="margin-top: 6px;">
-                            <div class="field">
-                                <label>Box en Stock Initial</label>
-                                <input type="text" inputmode="numeric" id="real-initial-boxes" value="0">
-                            </div>
-                            <div class="field">
-                                <label>Ventes Initiales (Unités)</label>
-                                <input type="text" inputmode="numeric" id="real-initial-units" value="0">
-                            </div>
-                        </div>
-                        <button id="btn-real-buy-box" class="btn btn-buy" style="margin-top: 6px;">+ BUY 1 BOX (-230$)</button>
+                        <button id="btn-stop" class="btn btn-buy" disabled>■ TERMINER & ENCAISSER</button>
                     </div>
 
-                    <!-- CALCULATEUR DE MARGE RAPIDE -->
+                    <!-- Paramètres du Véhicule & Carburant -->
                     <div class="control-box">
-                        <div class="box-title">⚡ CALCULATEUR DE MARGE RAPIDE</div>
+                        <div class="box-title">PARAMÈTRES CARBURANT (CAD)</div>
                         <div class="form-row">
                             <div class="field">
-                                <label>Prix / Unité</label>
-                                <input type="text" inputmode="decimal" id="calc-price" value="45">
+                                <label>Prix Essence ($/L)</label>
+                                <input type="text" inputmode="decimal" id="cfg-fuel-price" value="1.65">
                             </div>
                             <div class="field">
-                                <label>Quantité</label>
-                                <input type="text" inputmode="numeric" id="calc-qty" value="1">
+                                <label>Conso. (L/100km)</label>
+                                <input type="text" inputmode="decimal" id="cfg-consumption" value="8.5">
                             </div>
-                        </div>
-                        <div class="sim-stats" style="margin-top: 4px; padding: 6px;">
-                            <div class="stat-row"><span>CA Estimé:</span><strong id="calc-rev-val">45.00 $</strong></div>
-                            <div class="stat-row"><span>Coût Estimé (PRU):</span><strong id="calc-cost-val" style="color:var(--red);">23.00 $</strong></div>
-                            <div class="stat-row"><span>Profit Net Prévu:</span><strong id="calc-profit-val">+22.00 $</strong></div>
                         </div>
                     </div>
 
+                    <!-- Tarification Taximètre -->
                     <div class="control-box">
-                        <div class="box-title" data-i18n="box_sale">DIRECT CLIENT SALE</div>
-                        <div class="field">
-                            <label data-i18n="lbl_client">Client</label>
-                            <input type="text" id="client-name" placeholder="Client name">
-                        </div>
+                        <div class="box-title">TARIF TAXIMÈTRE (CAD)</div>
                         <div class="form-row">
                             <div class="field">
-                                <label data-i18n="lbl_model">Model</label>
-                                <input type="text" id="client-model" placeholder="Ex: 48k">
+                                <label>Prise en Charge ($)</label>
+                                <input type="text" inputmode="decimal" id="cfg-base-fare" value="3.75">
                             </div>
                             <div class="field">
-                                <label data-i18n="lbl_flavor">Flavor</label>
-                                <input type="text" id="client-flavor" placeholder="Ex: Mint">
+                                <label>Tarif par km ($/km)</label>
+                                <input type="text" inputmode="decimal" id="cfg-per-km" value="1.85">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="field">
-                                <label data-i18n="lbl_price">Unit Price</label>
-                                <input type="text" inputmode="decimal" id="client-price" value="45">
+                                <label>Attente/Stop ($/min)</label>
+                                <input type="text" inputmode="decimal" id="cfg-wait-rate" value="0.55">
                             </div>
                             <div class="field">
-                                <label data-i18n="lbl_qty">Quantity</label>
-                                <input type="text" inputmode="numeric" id="client-qty" value="1">
+                                <label>Seuil Stop (km/h)</label>
+                                <input type="text" inputmode="decimal" id="cfg-stop-speed" value="5">
                             </div>
                         </div>
-                        <button id="btn-real-sell-unit" class="btn btn-sell" data-i18n="btn_validate_sale">VALIDATE SALE</button>
                     </div>
                 </div>
 
-                <div id="panel-sim" class="execution-panel">
-                    <div class="control-box">
-                        <div class="box-title" data-i18n="box_sim">BOX SIMULATION</div>
-                        <div class="field" style="margin-bottom: 8px;">
-                            <label data-i18n="lbl_treasury">Initial Treasury</label>
-                            <input type="text" inputmode="decimal" id="sim-initial-cash" value="0">
-                        </div>
-                        <div class="form-row">
-                            <div class="field">
-                                <label data-i18n="lbl_box_cost">Box Cost</label>
-                                <input type="text" inputmode="decimal" id="sim-box-cost" value="230">
-                            </div>
-                            <div class="field">
-                                <label data-i18n="lbl_box_rev">Box Revenue</label>
-                                <input type="text" inputmode="decimal" id="sim-box-revenue" value="450">
-                            </div>
-                        </div>
-                        <div class="form-row" style="margin-top: 8px;">
-                            <button id="btn-sim-buy" class="btn btn-buy" data-i18n="btn_sim_buy">TEST BUY</button>
-                            <button id="btn-sim-sell" class="btn btn-sell" data-i18n="btn_sim_sell">LIQUIDATION</button>
-                        </div>
-                    </div>
-                    <div class="sim-stats">
-                        <div class="stat-row"><span data-i18n="lbl_margin">NET MARGIN:</span><strong id="sim-margin-val">+220.00 $</strong></div>
-                        <div class="stat-row"><span data-i18n="lbl_profit_test">TEST PROFIT:</span><strong id="sim-pnl-val">0.00 $</strong></div>
-                    </div>
-                </div>
-
+                <!-- Carnet des Courses -->
                 <div class="ledger-drawer">
                     <div class="drawer-header">
-                        <span data-i18n="ledger_title">ORDER BOOK</span>
-                        <button id="btn-clear-ledger" class="btn-clean" data-i18n="btn_clear">CLEAR</button>
+                        <span>HISTORIQUE DES COURSES</span>
+                        <button id="btn-clear-history" class="btn-clean">VIDER</button>
                     </div>
                     <div class="table-scroll">
                         <table class="pro-table">
                             <thead>
                                 <tr>
-                                    <th data-i18n="th_time">TIME</th>
-                                    <th data-i18n="th_type">TYPE</th>
-                                    <th data-i18n="th_detail">DETAIL</th>
-                                    <th data-i18n="th_net">NET</th>
-                                    <th></th>
+                                    <th>HEURE</th>
+                                    <th>DIST.</th>
+                                    <th>DURÉE</th>
+                                    <th>TOTAL</th>
                                 </tr>
                             </thead>
-                            <tbody id="ledger-tbody">
-                                <tr><td colspan="5" class="empty" data-i18n="empty_orders">NO ORDERS</td></tr>
+                            <tbody id="history-tbody">
+                                <tr><td colspan="4" class="empty">AUCUNE COURSE ENREGISTRÉE</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -188,69 +151,41 @@
         </main>
     </div>
 
+    <!-- Modale Bilan / Reçu -->
+    <div id="bilan-modal" class="modal hidden">
+        <div class="modal-card modal-large">
+            <div class="modal-head">
+                <span>REÇU / BILAN DE COURSE</span>
+                <button id="close-bilan" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" id="bilan-content"></div>
+            <div class="modal-foot">
+                <button id="btn-download-img" class="btn btn-secondary">Télécharger PNG</button>
+                <button id="btn-print" class="btn btn-secondary">Imprimer / PDF</button>
+                <button id="close-bilan-btn" class="btn btn-primary">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Paramètres -->
     <div id="settings-modal" class="modal hidden">
         <div class="modal-card">
             <div class="modal-head">
-                <span data-i18n="settings_title">Settings</span>
+                <span>PARAMÈTRES VISUELS</span>
                 <button id="close-settings" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="field" style="margin-bottom: 12px;">
-                    <label data-i18n="lbl_theme">Visual Theme</label>
+                    <label>Thème Visuel</label>
                     <select id="setting-theme">
-                        <option value="basic">Basic (Dark)</option>
+                        <option value="basic">Basic (Sombre Pro)</option>
                         <option value="black">Black (OLED)</option>
-                        <option value="white">White (Light)</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 12px;">
-                    <label data-i18n="lbl_lang">Language</label>
-                    <select id="setting-lang">
-                        <option value="en">English</option>
-                        <option value="fr">Français</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 12px;">
-                    <label data-i18n="lbl_currency">Currency</label>
-                    <select id="setting-currency">
-                        <option value="CAD">CAD ($)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                    </select>
-                </div>
-                <hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
-                <div class="field" style="margin-bottom: 12px;">
-                    <label>Type de Graphique (Chart Style)</label>
-                    <select id="setting-chart-type">
-                        <option value="line">Ligne Simple</option>
-                        <option value="area">Aire Dégradée</option>
-                        <option value="candlestick">Bougies Japonaises (Candlestick)</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 12px;">
-                    <label>Style de Ligne / Effet Visuel</label>
-                    <select id="setting-line-style">
-                        <option value="glow">Néon Lumineux (Glow)</option>
-                        <option value="solid">Ligne Pleine Standard</option>
-                    </select>
-                </div>
-                <div class="field" style="margin-bottom: 12px;">
-                    <label>Histogramme de Volume</label>
-                    <select id="setting-show-volume">
-                        <option value="true">Affiché (Bas)</option>
-                        <option value="false">Masqué</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Grille de Fond</label>
-                    <select id="setting-show-grid">
-                        <option value="true">Affichée</option>
-                        <option value="false">Masquée</option>
+                        <option value="white">White (Blanc & Noir)</option>
                     </select>
                 </div>
             </div>
             <div class="modal-foot">
-                <button id="save-settings" class="btn btn-primary" data-i18n="btn_save">Save</button>
+                <button id="save-settings" class="btn btn-primary">Enregistrer</button>
             </div>
         </div>
     </div>
