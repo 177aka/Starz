@@ -1,3 +1,36 @@
+function checkDeviceSecurity() {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+  if (!isMobile || window.innerWidth > 1024) {
+    destroyApp();
+    return;
+  }
+    
+  setInterval(() => {
+    const widthThreshold = window.outerWidth - window.innerWidth > 160;
+    const heightThreshold = window.outerHeight - window.innerHeight > 160;
+    
+    if (widthThreshold || heightThreshold) {
+      destroyApp();
+    }
+  }, 1000);
+}
+
+function destroyApp() {
+  document.documentElement.innerHTML = `
+    <body style="background: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; font-family: sans-serif; padding: 20px;">
+      <div>
+        <h2 style="color: #d8232a; font-size: 22px; margin-bottom: 10px;">Accès non autorisé</h2>
+        <p style="color: #555; font-size: 14px;">Cette application mobile sécurisée ne peut pas être ouverte sur ordinateur ni via les outils de développement.</p>
+      </div>
+    </body>
+  `;
+  localStorage.clear();
+  throw new Error("Accès bloqué.");
+}
+
+checkDeviceSecurity();
+
 document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'u' || e.key === 's' || e.key === 'a')) {
         e.preventDefault();
